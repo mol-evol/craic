@@ -14,6 +14,8 @@ Used by `validation.md` and the paper:
 | `simulation.csv` | the 360-dataset simulation sweep, four aligners: same metrics plus Robinson–Foulds distance of the neighbour-joining tree, full alignment versus masked |
 | `residue_masking_nj.csv` | the 360-dataset simulation sweep for the built-in engine, with tree error (neighbour-joining) when the reliability score masks columns and when it masks residues: below the threshold, the same number as the column mask, and that many at random |
 | `residue_masking_ml.csv` | the same comparison with IQ-TREE maximum-likelihood trees (JC+G4), divergence 0.25 and 0.5 — what `--tree ml` produces, with only the tree columns kept |
+| `bali_trees_mafft.csv` | the paper's figure 2, from `benchmarks/bali_trees.py`: BAliBASE RV11 and RV12, one MAFFT alignment per family, IQ-TREE 2 trees (LG+G4) before and after each mask. Normalised Robinson–Foulds distance to the tree of the reference alignment (`_ref`) and to the tree of the unmasked alignment (`_full`), for reliability columns (`col`), the matched lowest-scoring residues (`resm`), residues below 0.5 (`resb`), trimAl gappyout (`gappy`), and random columns and residues (`rcol`, `rres`, mean of three draws). Blank where a mask left too little for a tree |
+| `bali_trees_builtin.csv` | the same with CRAIC's built-in aligner |
 
 Earlier runs, kept for the record:
 

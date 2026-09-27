@@ -103,7 +103,9 @@ install CRAIC. `pyproject.toml` now sets `pythonpath = ["."]` for pytest.
 **Raw results.** `benchmarks/results/` now holds the PRANK re-run (in place of
 the old PRANK rows in `balibase_official.csv` and `prank_percol.csv`) and the
 residue-masking runs (`residue_masking_nj.csv`, `residue_masking_ml.csv`); its
-README says which file is behind which table.
+README says which file is behind which table. The BAliBASE tree comparison
+behind the paper's figure 2 is new: `benchmarks/bali_trees.py` and its results,
+`bali_trees_mafft.csv` and `bali_trees_builtin.csv`.
 
 **Command line.** `craic align --param KEY=VALUE` (repeatable) sets any engine
 parameter, checked against the engine's own list, and `craic engines` lists them

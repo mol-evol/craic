@@ -160,6 +160,22 @@ conservative — near-perfect precision but they discard most columns. These are
 faithful reimplementations of the published *algorithms* (`craic.ambiguity.trimming`);
 for authoritative numbers run the original trimAl / Gblocks.
 
+## Trees on BAliBASE (`bali_trees.py`)
+
+The paper's figure 2 asks whether masking changes trees on real alignments.
+BAliBASE has no true tree, so `bali_trees.py` compares each tree with the tree
+from the family's reference alignment. It aligns every RV11 and RV12 family
+once, applies each mask to that alignment (nothing is re-aligned) and builds
+IQ-TREE 2 trees (LG+G4, `iqtree2` on your `PATH`):
+
+```bash
+python benchmarks/bali_trees.py path/to/bb3_release mafft --out bali_trees_mafft.csv
+python benchmarks/bali_trees.py path/to/bb3_release builtin --out bali_trees_builtin.csv
+```
+
+It resumes if stopped. The columns are described in
+[results/README.md](results/README.md).
+
 ## Output
 
 A CSV with one row per run and a printed summary of means per aligner. Columns:
