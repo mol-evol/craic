@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.13 — one core left free
+
+Long analyses now use one thread fewer than the computer has cores, leaving a
+core for the operating system and other programs, so a run of several minutes
+does not make the rest of the computer sluggish. It costs about an eighth of the
+speed-up on an eight-core machine; a two-core machine runs single-threaded, as
+before 0.5.12. Results are unchanged.
+
 ## 0.5.12 — long analyses use every core, show the time left, and can be stopped
 
 A Windows user scored 36 long protein sequences and the window appeared to

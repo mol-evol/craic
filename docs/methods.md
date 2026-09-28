@@ -105,8 +105,9 @@ test suite cross-validates to ~10⁻⁹. The Rust core releases the GIL for the
 duration of the kernel, so the interface stays responsive while an analysis
 runs; this was measured rather than assumed (178 time slices delivered to
 another Python thread during one 566 ms call). Because the kernel releases the
-GIL, independent pairwise posteriors are computed on threads, one per CPU core,
-and summed in a fixed order, so results do not depend on the number of cores.
+GIL, independent pairwise posteriors are computed on threads, one per CPU core
+less one left for the rest of the computer, and summed in a fixed order, so
+results do not depend on the number of cores.
 Without the compiled core everything runs on the mirror and returns identical
 numbers, tens of times more slowly.
 

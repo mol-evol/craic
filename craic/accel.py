@@ -41,10 +41,11 @@ class Cancelled(Exception):
 # Parallel map over independent pair computations
 # --------------------------------------------------------------------------- #
 
-#: Threads used for independent pair-HMM computations. The Rust core releases
-#: the GIL, so threads run it on every core; the NumPy fallback holds the GIL
-#: and gains nothing, but loses nothing either.
-WORKERS = max(1, os.cpu_count() or 1)
+#: Threads used for independent pair-HMM computations: one per core, less one
+#: left for the rest of the computer, so a long analysis does not make it
+#: sluggish. The Rust core releases the GIL, so the threads run in parallel; the
+#: NumPy fallback holds the GIL and gains nothing, but loses nothing either.
+WORKERS = max(1, (os.cpu_count() or 1) - 1)
 
 #: Memory (GB) the threads may hold in posterior matrices at once. Streaming
 #: exists to keep peak memory at one matrix; running it on many threads must not
