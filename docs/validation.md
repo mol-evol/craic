@@ -31,7 +31,8 @@ lower quantity. Both are reported below and each is labelled.
 ## Real data: BAliBASE 3
 
 Every family was re-aligned with CRAIC's built-in engine and with MAFFT 7.505,
-MUSCLE 5.1, Clustal Omega 1.2.4, ProbCons 1.12 and PRANK v.170427, then scored
+MUSCLE 5.1, Clustal Omega 1.2.4, ProbCons 1.12, PRANK v.170427 and ClustalW 2.1,
+then scored
 two ways: with the official `bali_score` over core blocks, and with CRAIC's own
 all-column metrics (which is what the reliability AUC and the masking controls
 need, since they are per-column quantities).
@@ -51,6 +52,16 @@ complete.
 
 Figures below are means ± standard error.
 
+!!! note "The built-in engine was re-run in 0.5.11"
+    With SciPy installed, CRAIC 0.5.10 and earlier approximated the consistency
+    transformation (posteriors below 0.01 dropped) for any family with a sequence
+    of 350 residues or more. The benchmark machine has SciPy, so the built-in
+    engine's rows were made with the approximation. 0.5.11 uses the exact
+    transformation whenever it fits in memory, and the built-in rows here are
+    re-run with it: on BAliBASE SP 0.827 → 0.830 (161 of the 163 families exact;
+    the two largest still need the approximation within the 3 GB budget), on the
+    simulations 0.539 → 0.604. No other aligner's numbers are affected.
+
 ### Alignment accuracy, official core-block `bali_score`
 
 These are the numbers comparable with published BAliBASE tables.
@@ -59,35 +70,37 @@ These are the numbers comparable with published BAliBASE tables.
 |---|---|---|
 | MUSCLE 5.1 | 0.856 ± 0.012 | 0.712 ± 0.020 |
 | ProbCons 1.12 | 0.850 ± 0.013 | 0.705 ± 0.021 |
-| CRAIC built-in | 0.827 ± 0.015 | 0.674 ± 0.022 |
+| CRAIC built-in | 0.830 ± 0.014 | 0.676 ± 0.022 |
 | MAFFT 7.505 | 0.818 ± 0.016 | 0.667 ± 0.022 |
 | Clustal Omega 1.2.4 | 0.766 ± 0.018 | 0.593 ± 0.024 |
+| ClustalW 2.1 | 0.743 ± 0.017 | 0.551 ± 0.025 |
 | PRANK v.170427 | 0.714 ± 0.018 | 0.506 ± 0.023 |
 
 Paired Wilcoxon tests against the built-in engine, on SP:
 
 | aligner | difference | better / worse | p |
 |---|---|---|---|
-| MUSCLE | +0.029 | 107 / 40 | 3.7 × 10⁻⁹ |
-| ProbCons | +0.023 | 99 / 52 | 4.6 × 10⁻⁶ |
-| MAFFT | −0.009 | 61 / 92 | 0.12 |
-| Clustal Omega | −0.061 | 33 / 128 | 2.3 × 10⁻¹² |
-| PRANK | −0.113 | 5 / 157 | 1.1 × 10⁻²⁷ |
+| MUSCLE | +0.025 | 106 / 42 | 9.7 × 10⁻⁹ |
+| ProbCons | +0.020 | 97 / 52 | 2.5 × 10⁻⁵ |
+| MAFFT | −0.013 | 60 / 94 | 0.045 |
+| Clustal Omega | −0.064 | 31 / 131 | 1.2 × 10⁻¹³ |
+| ClustalW | −0.088 | 21 / 139 | 6.5 × 10⁻²¹ |
+| PRANK | −0.117 | 5 / 157 | 1.1 × 10⁻²⁷ |
 
-Three things in that table are worth drawing out.
+Four things in that table are worth drawing out.
 
 **ProbCons is there on purpose.** CRAIC's built-in engine follows ProbCons's
 method, so a table reporting it against MAFFT and MUSCLE alone would invite the
 reader to conclude that posterior-consistency alignment is the weaker approach.
-ProbCons itself scores 0.023 above the built-in engine, so most of that
+ProbCons itself scores 0.020 above the built-in engine, so most of that
 difference is this implementation rather than the method — the built-in engine
 estimates its pair-HMM parameters per dataset where ProbCons EM-trains them once,
 and that is the substantive remaining difference between them.
 
-**The built-in engine and MAFFT are indistinguishable here** (p = 0.12). It is
+**The built-in engine is slightly ahead of MAFFT here** (by 0.013, p = 0.045). It is
 behind MUSCLE and ProbCons, ahead of Clustal Omega, and the ordering is not
 uniform across the sets: it is fourth on BB11 and BB12 and third on BBS1, where
-it beats MAFFT by 0.042. Per-set figures are in the
+it beats MAFFT by 0.043. Per-set figures are in the
 [supplementary tables](#per-set-accuracy).
 
 !!! note "PRANK was re-run in 0.5.10"
@@ -97,6 +110,12 @@ it beats MAFFT by 0.042. Per-set figures are in the
     rate. The PRANK rows here are re-run with PRANK's own defaults (SP 0.686 →
     0.714, TC 0.470 → 0.506); every other aligner's rows are unchanged, and so
     are the conclusions drawn from them.
+
+**ClustalW is there for teaching.** It is the one engine whose gap costs are the
+textbook pair of opening and extension penalties, so it is where a student can
+change them and watch the result against the truth. It was added in 0.5.10 and
+run with the same command (`--engines clustalw`). As expected of Clustal Omega's
+predecessor, it is behind it (53 families better, 107 worse, p = 1.4 × 10⁻⁴).
 
 **PRANK's position is a property of the benchmark, not a verdict on PRANK.** It
 is phylogeny-aware and declines to over-align — it treats insertions as
@@ -112,9 +131,10 @@ workbench offers would be a selection the reader could not see.
 | | n=38 | n=43 | n=82 |
 | MUSCLE | 0.685 | 0.942 | 0.889 |
 | ProbCons | 0.670 | 0.941 | 0.886 |
-| CRAIC built-in | 0.613 | 0.926 | 0.874 |
+| CRAIC built-in | 0.625 | 0.926 | 0.875 |
 | MAFFT | 0.651 | 0.938 | 0.832 |
 | Clustal Omega | 0.590 | 0.905 | 0.775 |
+| ClustalW | 0.501 | 0.864 | 0.792 |
 | PRANK | 0.490 | 0.851 | 0.745 |
 
 ### No method reconstructs these alignments
@@ -130,14 +150,15 @@ degree. Over the same 163 families:
 | MAFFT | 5 / 163 (3.1%) |
 | Clustal Omega | 0 / 163 (0.0%) |
 | PRANK | 0 / 163 (0.0%) |
-| **any method** | **10 / 163 (6.1%)** |
-| **all six methods** | **0 / 163 (0.0%)** |
+| ClustalW | 6 / 163 (3.7%) |
+| **any method** | **11 / 163 (6.7%)** |
+| **all seven methods** | **0 / 163 (0.0%)** |
 
-94% of families are reconstructed incorrectly by every aligner tested, and there
-is not one family that all six get right. Nor is the best method knowable in
-advance: MUSCLE produces the best alignment for 88 of the 163 families, leaving
-75 won by one of the other five. An oracle allowed to pick the best method per
-family would reach TC 0.739 against MUSCLE's 0.712 — an improvement unavailable
+93% of families are reconstructed incorrectly by every aligner tested, and there
+is not one family that all seven get right. Nor is the best method knowable in
+advance: MUSCLE produces the best alignment for 81 of the 163 families, leaving
+82 won by one of the other six. An oracle allowed to pick the best method per
+family would reach TC 0.742 against MUSCLE's 0.712 — an improvement unavailable
 in practice, and one that still leaves a quarter of columns misplaced.
 
 These are capable tools; each recovers the large majority of homologous pairs.
@@ -160,9 +181,10 @@ the AUC is a per-column quantity and needs every column.
 |---|---|---|---|
 | MUSCLE | 0.740 | 0.466 | 0.833 ± 0.010 |
 | ProbCons | 0.732 | 0.460 | 0.845 ± 0.009 |
-| CRAIC built-in | 0.710 | 0.444 | 0.843 ± 0.008 |
+| CRAIC built-in | 0.714 | 0.445 | 0.848 ± 0.007 |
 | MAFFT | 0.700 | 0.431 | 0.874 ± 0.007 |
 | Clustal Omega | 0.665 | 0.399 | 0.876 ± 0.009 |
+| ClustalW | 0.643 | 0.379 | 0.903 ± 0.009 |
 | PRANK | 0.596 | 0.332 | 0.905 ± 0.007 |
 
 An AUC of 0.83–0.90 means that, picking a correct column and an incorrect one at
@@ -171,8 +193,8 @@ ten. It works on alignments CRAIC did not build as well as on its own, which is
 the property that matters for a curation tool.
 
 **This column is not a ranking of the aligners — it is very close to the reverse
-of one.** Across the six engines, reliability AUC and alignment accuracy are
-almost perfectly anticorrelated (Spearman ρ = −0.94, p = 0.005): the AUC is
+of one.** Across the seven engines, reliability AUC and alignment accuracy are
+perfectly anticorrelated in rank (Spearman ρ = −1.00, p = 0.0004): the AUC is
 highest on PRANK's alignments, which are the least accurate, and lowest on
 MUSCLE's, which are the most. That is expected rather than perverse. A less
 accurate alignment contains more genuinely wrong columns, so there is more signal
@@ -191,20 +213,21 @@ trivial **gap-fraction** rule. Only the margin over those is evidence.
 
 | alignment built by | kept columns | matched random | gap-fraction rule | z |
 |---|---|---|---|---|
+| ClustalW | **0.858** | 0.606 | 0.669 | +11.3 |
 | PRANK | **0.846** | 0.592 | 0.671 | +10.8 |
 | Clustal Omega | **0.842** | 0.615 | 0.710 | +9.8 |
 | MUSCLE | **0.837** | 0.671 | 0.733 | +8.1 |
 | ProbCons | **0.832** | 0.666 | 0.733 | +8.1 |
-| CRAIC built-in | **0.829** | 0.645 | 0.728 | +8.0 |
 | MAFFT | **0.828** | 0.634 | 0.728 | +9.5 |
+| CRAIC built-in | **0.819** | 0.648 | 0.714 | +8.0 |
 
 A random mask is an unbiased subsample, so it recovers the all-column mean rather
 than improving on it; its job here is to fix the baseline and supply the spread
 the *z* is measured in. The **gap-fraction rule is the real competitor**: it costs
 nothing to compute and already reaches 0.71–0.73, which is over half the distance
-from random to the reliability score. The reliability score reaches 0.83–0.84.
+from random to the reliability score. The reliability score reaches 0.82–0.86.
 
-The informative margin is therefore the last **≈ 0.10** (0.10–0.18 across the six
+The informative margin is therefore the last **≈ 0.10** (0.10–0.19 across the seven
 engines), not the ≈ 0.19 over random and not what an uncontrolled before-and-after
 comparison would suggest. Gap fraction is one line of code, so the pair-HMM, the consistency
 transformation and the perturbation ensemble have to beat *it* to earn the
@@ -227,10 +250,11 @@ three indel rates, 10 replicates per condition.
 
 | aligner | SP | TC | reliability AUC | kept | random | gap rule | z |
 |---|---|---|---|---|---|---|---|
-| CRAIC built-in | 0.539 | 0.355 | **0.875** | 0.893 | 0.461 | 0.592 | +10.6 |
+| CRAIC built-in | 0.604 | 0.369 | **0.855** | 0.926 | 0.529 | 0.690 | +6.9 |
 | MAFFT | 0.608 | 0.379 | **0.893** | 0.843 | 0.533 | 0.548 | +11.3 |
 | MUSCLE | 0.663 | 0.387 | **0.858** | 0.884 | 0.581 | 0.669 | +8.5 |
 | Clustal Omega | 0.549 | 0.261 | **0.943** | 0.836 | 0.529 | 0.532 | +12.2 |
+| ClustalW | 0.555 | 0.332 | **0.927** | 0.873 | 0.534 | 0.534 | +12.6 |
 
 The reliability AUC is higher here than on BAliBASE (0.86–0.94 against
 0.83–0.90), which is what you would expect and is worth saying out loud: the
@@ -244,25 +268,24 @@ Averages hide the interesting part. Accuracy does not decay gracefully with
 divergence — it falls off a cliff between 0.25 and 0.5, and every method falls off
 it together:
 
-| divergence | CRAIC | MAFFT | MUSCLE | Clustal Omega |
-|---|---|---|---|---|
-| 0.1 | 0.982 | 0.965 | 0.964 | 0.860 |
-| 0.25 | 0.905 | 0.887 | 0.892 | 0.746 |
-| 0.5 | 0.598 | 0.680 | 0.730 | 0.594 |
-| 0.75 | 0.366 | 0.509 | 0.590 | 0.473 |
-| 1.0 | 0.249 | 0.396 | 0.490 | 0.382 |
-| 1.5 | 0.131 | 0.214 | 0.314 | 0.241 |
+| divergence | CRAIC | MAFFT | MUSCLE | Clustal Omega | ClustalW |
+|---|---|---|---|---|---|
+| 0.1 | 0.982 | 0.965 | 0.964 | 0.860 | 0.955 |
+| 0.25 | 0.914 | 0.887 | 0.892 | 0.746 | 0.825 |
+| 0.5 | 0.697 | 0.680 | 0.730 | 0.594 | 0.601 |
+| 0.75 | 0.484 | 0.509 | 0.590 | 0.473 | 0.435 |
+| 1.0 | 0.354 | 0.396 | 0.490 | 0.382 | 0.333 |
+| 1.5 | 0.191 | 0.214 | 0.314 | 0.241 | 0.180 |
 
-Two things follow. The built-in engine is competitive at low divergence and falls
-behind faster than the others as divergence rises, which is the expected
-signature of an engine without empirically-tuned parameters — another reason to
-use MAFFT or MUSCLE on hard data. And past a divergence of about 0.5 every
+Two things follow. The built-in engine is level with MAFFT up to a divergence of
+0.5 and a little behind it beyond, and behind MUSCLE from 0.5 on, so MUSCLE is
+still the one to use on hard data. And past a divergence of about 0.5 every
 aligner is recovering less than three-quarters of the true homologies, which is
 precisely the regime where an interactive view of *which* columns are wrong stops
 being a nicety.
 
 The reliability score, by contrast, keeps working across the whole range
-(AUC 0.83–0.90 on CRAIC's own alignments) — it does not degrade where the
+(AUC 0.83–0.89 on CRAIC's own alignments) — it does not degrade where the
 alignment does.
 
 ### The honest negative result
@@ -275,11 +298,11 @@ the true topology, CRAIC alignments, default 0.5 threshold:
 | divergence | RF, full alignment | RF, masked |
 |---|---|---|
 | 0.1 | 0.00 | 0.00 |
-| 0.25 | 0.04 | 0.15 |
-| 0.5 | 0.16 | 0.47 |
-| 0.75 | 0.35 | 0.65 |
-| 1.0 | 0.52 | 0.73 |
-| 1.5 | 0.65 | 0.84 |
+| 0.25 | 0.04 | 0.14 |
+| 0.5 | 0.16 | 0.42 |
+| 0.75 | 0.29 | 0.60 |
+| 1.0 | 0.42 | 0.68 |
+| 1.5 | 0.60 | 0.81 |
 
 The reason is not mysterious: at high divergence the threshold discards most of
 the columns, and with them the phylogenetic signal. A more accurate alignment of
@@ -311,21 +334,21 @@ tree are excluded from every comparison (*n* below, of 60 per divergence).
 
 | divergence | tree | removed | full | columns | residues, lowest | residues, random | residues < 0.5 | *n* |
 |---|---|---|---|---|---|---|---|---|
-| 0.1 | NJ | 2% | 0.00 | 0.01 | 0.01 | 0.01 | 0.01 | 60 |
-| 0.25 | NJ | 25% | 0.04 | 0.16 | 0.22 | 0.21 | 0.22 | 60 |
-| 0.5 | NJ | 70% | 0.14 | 0.47 | 0.59 | 0.63 | 0.57 | 55 |
-| 0.75 | NJ | 89% | 0.28 | 0.62 | 0.76 | 0.84 | 0.68 | 51 |
-| 1.0 | NJ | 96% | 0.45 | 0.75 | 0.87 | 0.92 | 0.76 | 37 |
-| 1.5 | NJ | 99% | 0.55 | 0.81 | 0.93 | 0.97 | 0.79 | 20 |
+| 0.1 | NJ | 2% | 0.00 | 0.00 | 0.01 | 0.01 | 0.01 | 60 |
+| 0.25 | NJ | 24% | 0.04 | 0.14 | 0.22 | 0.20 | 0.19 | 60 |
+| 0.5 | NJ | 68% | 0.15 | 0.42 | 0.54 | 0.55 | 0.49 | 50 |
+| 0.75 | NJ | 89% | 0.21 | 0.60 | 0.74 | 0.77 | 0.67 | 39 |
+| 1.0 | NJ | 96% | 0.32 | 0.68 | 0.85 | 0.83 | 0.72 | 21 |
+| 1.5 | NJ | 99% | 0.35 | 0.81 | 0.91 | 0.95 | 0.83 | 10 |
 | 0.25 | ML | 25% | 0.02 | 0.12 | 0.19 | 0.18 | 0.18 | 60 |
 | 0.5 | ML | 70% | 0.12 | 0.47 | 0.57 | 0.61 | 0.53 | 52 |
 
 Masking residues did not help. At the same amount removed, masking the
 lowest-scoring residues gave worse trees than masking columns (mean
-Robinson–Foulds difference +0.09 with neighbour-joining, better in 18 datasets
-and worse in 111, Wilcoxon *p* = 3 × 10⁻¹⁶; +0.09 with maximum likelihood, 6
-better and 40 worse, *p* = 5 × 10⁻⁷), and only a little better than masking the
-same number of residues at random (−0.03, *p* = 0.005, and −0.01, *p* = 0.19).
+Robinson–Foulds difference +0.09 with neighbour-joining, better in 10 datasets
+and worse in 75, Wilcoxon *p* = 7 × 10⁻¹²; +0.09 with maximum likelihood, 6
+better and 40 worse, *p* = 5 × 10⁻⁷), and no better than masking the same number of
+residues at random (−0.002, *p* = 0.54, and −0.01, *p* = 0.19).
 Masking every residue below 0.5 was also worse than masking columns. The flagged
 residues are not spread evenly across sequences, so the sequences that are
 hardest to align are left with the least data. At this threshold the residues the
@@ -333,10 +356,9 @@ score flags carry phylogenetic signal as well as error. Gentler filtering,
 removing far fewer residues, has been reported to improve gene trees (Wheeler *et
 al.* 2026) and was not tested here.
 
-These trees come from a re-run of the simulation with 0.5.10, whose built-in
-engine gives slightly different alignments from those behind the tables above
-(SP within about 0.01), so the full and column-masked values differ a little
-from the previous table's.
+The neighbour-joining rows come from the same 0.5.11 run as the tables above.
+The maximum-likelihood rows are from 0.5.10, whose built-in engine used the
+approximate consistency transformation, and have not been re-run.
 
 So residue masks are a curation tool — for a residue you have looked at and
 judged wrong — not a better automatic filter.
@@ -363,9 +385,13 @@ core makes the whole thing roughly ten times faster but changes no results.
 
 ```bash
 # 1. simulation arm — 360 datasets
+#    The reliability figures are the consistency score alone and the built-in
+#    engine runs at --effort med, as the published numbers were made; adding
+#    --perturbation, or leaving the effort at its default (max), gives different
+#    numbers.
 python benchmarks/run_benchmark.py --sim --taxa 8 16 --length 400 --reps 10 \
     --divergence 0.1 0.25 0.5 0.75 1.0 1.5 --indel 0.5 2.0 5.0 \
-    --rate-alpha 0.8 --perturbation --out sim.csv
+    --rate-alpha 0.8 --effort med --out sim.csv
 
 # 2. real-data arm — BAliBASE 3, the two reference sets reported above.
 #    --effort max runs the built-in engine with iterative refinement; leaving it
@@ -376,6 +402,8 @@ python benchmarks/run_benchmark.py --protein \
     --reference "bb3_release/RV1*/*.xml" --effort max \
     --write-alignments aligned_out --max-mem-gb 3 --engine-timeout 0 \
     --out balibase.csv
+#    The ClustalW rows were added with --engines clustalw on this command and on
+#    the simulation command.
 
 # 3. official core-block scores for the alignments written in step 2
 python benchmarks/score_balibase.py aligned_out \

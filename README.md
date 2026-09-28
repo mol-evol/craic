@@ -262,14 +262,13 @@ pytest tests          # core tests; GUI smoke tests run if PySide6 is importable
   estimated divergence. That matrix is BLOSUM45 rather than the more usual
   BLOSUM62, because it measured better on BAliBASE core blocks at both
   divergence levels tested (see [Validation](docs/validation.md)).
-- The consistency transformation is **sparsified** when SciPy is installed
+- The consistency transformation is exact whenever it fits in memory. For
+  families too large for that, CRAIC can **sparsify** it if SciPy is installed
   (`pip install craic-msa[speed]`), thresholding posteriors at 0.01 as ProbCons
-  does. That is an approximation, not a refactor: it holds a few per cent of the
-  dense memory and is several times faster on long sequences, and on simulated
-  data the resulting alignments are usually identical and never materially less
-  accurate — but they are not guaranteed bit-identical, and the dense path
-  remains available (`sparse=False`) for comparison. Below ~350 columns the
-  dense product is faster and is chosen automatically.
+  does. That holds a few per cent of the dense memory, but it is an
+  approximation that costs accuracy on divergent sequences, so it is used only
+  when the exact transformation would not fit. Without SciPy, such families
+  fall back to alignment without the consistency transformation.
 - The **perturbation score is a sensitivity probe, not GUIDANCE.** GUIDANCE
   bootstraps alignment columns to build perturbed guide trees and re-aligns with
   the same aligner that produced the reference, over ~100 replicates. CRAIC uses

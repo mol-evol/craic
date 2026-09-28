@@ -214,12 +214,34 @@ def test_sparse_alignment_is_as_accurate_as_dense():
     assert abs(sa - sb) < 0.05      # usually identical; never materially worse
 
 
-def test_auto_choice_uses_dense_for_short_sequences():
-    """Sparse products lose to BLAS on small matrices, so the automatic choice
-    has to be by size rather than merely by availability."""
-    small = {(0, 1): np.full((40, 40), 0.5)}
-    out = progressive.consistency_transform(small, 2, iters=1)
-    assert isinstance(out[(0, 1)], np.ndarray)      # dense, even if SciPy is present
+def _sparse_choice(monkeypatch, seqs, **kw):
+    """The ``sparse`` argument align() hands to the consistency transform."""
+    seen = []
+    real = progressive.consistency_transform
+
+    def spy(*a, **k):
+        seen.append(k.get("sparse"))
+        return real(*a, **k)
+
+    monkeypatch.setattr(progressive, "consistency_transform", spy)
+    progressive.align(seqs, Alphabet.DNA, estimate=False, **kw)
+    return seen
+
+
+def test_align_uses_the_exact_transform_whenever_it_fits(monkeypatch):
+    """The sparse transform is an approximation that costs accuracy on divergent
+    sequences, so long sequences alone must not trigger it (0.5.10 switched to it
+    above 350 residues whenever SciPy was installed)."""
+    d, _truth = _sim(taxa=3, root_len=400, seed=2)
+    assert _sparse_choice(monkeypatch, d["seqs"]) == [False]
+
+
+@pytest.mark.skipif(not progressive.sparse_available(), reason="SciPy not installed")
+def test_align_uses_the_sparse_transform_only_when_dense_does_not_fit(monkeypatch):
+    d, _truth = _sim(taxa=3, root_len=400, seed=2)
+    n, L = 3, max(len(s) for _, s in d["seqs"])
+    budget = (progressive._posterior_gb(n, L, sparse=True) + progressive._posterior_gb(n, L)) / 2
+    assert _sparse_choice(monkeypatch, d["seqs"], consistency_mem_gb=budget) == [True]
 
 
 def test_memory_estimate_counts_both_generations():

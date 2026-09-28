@@ -7,7 +7,7 @@ imported lazily by their own modules so that headless / scripted use never
 pays for PySide6.
 """
 
-__version__ = "0.5.10"
+__version__ = "0.5.11"
 __author__ = "James McInerney"
 
 AUTHOR_URL = "https://mol-evol.github.io/"

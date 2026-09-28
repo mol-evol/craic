@@ -105,14 +105,6 @@ def _post(P, x, y):
 #: dominated by a great many near-zero entries that cannot change a decoding.
 SPARSE_THRESHOLD = 0.01
 
-#: Below this sequence length the dense transform is faster, because NumPy's
-#: matrix product is BLAS and the sparse one carries per-product overhead that a
-#: small matrix never amortises. Measured crossover on simulated DNA is around
-#: 300-400 columns: at L~260 dense wins by about 2x, at L~600 sparse wins by
-#: about 4x, and the memory saving (to a few per cent of dense) holds throughout.
-SPARSE_MIN_LEN = 350
-
-
 def sparse_available() -> bool:
     """Whether SciPy is present, which is what the sparse transform needs."""
     try:
@@ -133,7 +125,7 @@ def _sparsify(M, threshold: float):
 
 
 def consistency_transform(P, n, iters=2, cancelled=None,
-                          sparse: Optional[bool] = None,
+                          sparse: bool = False,
                           threshold: float = SPARSE_THRESHOLD):
     """ProbCons consistency transformation: re-estimate each pairwise posterior
     P(x,y) using every third sequence z, P'(x,y) = (1/n) sum_z P(x,z) P(z,y).
@@ -141,19 +133,16 @@ def consistency_transform(P, n, iters=2, cancelled=None,
     This is the most expensive thing CRAIC does — ``O(n^3)`` matrix products of
     ``L x L`` matrices per iteration — and it is what sets the largest family the
     workbench can handle with consistency turned on. Posteriors are overwhelmingly
-    near-zero, so when SciPy is available the matrices are thresholded at
-    ``threshold`` and the products run sparse, which is how ProbCons itself does
-    it. ``sparse=False`` forces the dense implementation; the two are compared
-    directly in the test-suite rather than assumed equivalent.
+    near-zero, so ``sparse=True`` thresholds the matrices at ``threshold`` and
+    runs the products sparse (SciPy), which is how ProbCons itself does it and
+    holds a few per cent of the dense memory.
 
-    Dropping entries below ``threshold`` does change the numbers slightly. It is
-    a deliberate approximation, not a refactor, which is why the dense path is
-    kept and why the tests check that the resulting *alignments* agree.
+    Dropping entries below ``threshold`` is an approximation, and not a small
+    one on divergent sequences, whose posteriors are spread thinly: on simulated
+    DNA at 0.5 substitutions per site it cost the built-in engine about 0.1 of
+    sum-of-pairs accuracy. So :func:`align` uses it only when the exact (dense)
+    transform would not fit in memory.
     """
-    if sparse is None:
-        # Auto: sparse only where it actually pays. See SPARSE_MIN_LEN.
-        biggest = max((max(v.shape) for v in P.values()), default=0)
-        sparse = sparse_available() and biggest >= SPARSE_MIN_LEN
     if sparse and not sparse_available():
         raise RuntimeError("the sparse consistency transform needs SciPy "
                            "(pip install scipy), or pass sparse=False")
@@ -424,7 +413,9 @@ def align(
 
     Small/medium families get the full ProbCons **consistency transformation**
     (accurate). Families whose dense pairwise posteriors would exceed
-    ``consistency_mem_gb`` fall back automatically to **streaming plain-MEA**: each
+    ``consistency_mem_gb`` get the sparse, thresholded transformation if SciPy is
+    installed and that fits (``sparse`` forces one or the other), and otherwise
+    fall back automatically to **streaming plain-MEA**: each
     pairwise posterior is computed on demand and discarded, so peak memory is a
     single L x L matrix and the aligner scales to large inputs (less accurate; for
     large jobs an external engine is still preferable). ``progress(done, total)``
@@ -455,9 +446,12 @@ def align(
     matrix = matrix or accel.PROTEIN_MATRIX
     n = len(seqs)
     maxlen = max(len(s) for s in seqs)
-    will_sparsify = sparse_available() and maxlen >= SPARSE_MIN_LEN
+    if sparse is None:
+        # The sparse transform approximates (see consistency_transform), so it is
+        # used only when the exact one would not fit in the memory budget.
+        sparse = _posterior_gb(n, maxlen) > consistency_mem_gb and sparse_available()
     use_consistency = (consistency_iters > 0
-                       and _posterior_gb(n, maxlen, will_sparsify) <= consistency_mem_gb)
+                       and _posterior_gb(n, maxlen, sparse) <= consistency_mem_gb)
 
     if model is None and estimate:
         # streaming plain-MEA pilot to read off divergence + gap rates (memory-safe)

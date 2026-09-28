@@ -124,13 +124,15 @@ even when the direct evidence is weak.
 This is the most expensive thing CRAIC does: O(n³) products of L×L matrices per
 iteration, and it is what sets the largest family the workbench can handle.
 
-**Sparsity.** Posteriors are overwhelmingly near zero. Where SciPy is available
-and the longest sequence exceeds 350 residues, matrices are thresholded at 0.01
-and the products run sparse — as ProbCons itself does. Measured, this holds
-1.8–6% of the dense memory and is about four times faster at 600 columns, while
-dense is faster below ~350. Thresholding *does* change the numbers slightly, so
-it is treated as a deliberate approximation: the dense path is kept, and the test
-suite compares the resulting **alignments** rather than assuming equivalence.
+**Sparsity.** Posteriors are overwhelmingly near zero, so the transformation can
+threshold them at 0.01 and run the products sparse, as ProbCons itself does.
+That holds 1.8–6% of the dense memory, but it is an approximation, and not a
+small one on divergent sequences, whose posteriors are spread thinly: on
+simulated DNA at 0.5 substitutions per site it cost the built-in engine about 0.1
+of sum-of-pairs accuracy. Since 0.5.11 CRAIC therefore uses the exact (dense)
+transformation whenever it fits in the memory budget, and the sparse one only
+when it does not and SciPy is installed. (0.5.10 and earlier switched to it for
+any sequence over 350 residues whenever SciPy was present.)
 
 **Compute levels.** The transformation is what distinguishes them:
 

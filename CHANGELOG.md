@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.5.11 — the exact consistency transformation
+
+**The built-in engine no longer approximates when it does not have to.** With
+SciPy installed, 0.5.10 and earlier switched the consistency transformation to
+its sparse form, which drops posteriors below 0.01, for any family with a
+sequence of 350 residues or more, to save time. On divergent sequences, whose
+posteriors are spread thinly, that approximation is not small: on the simulated
+DNA it cost the built-in engine about 0.1 of sum-of-pairs accuracy at 0.5
+substitutions per site. It also made results depend on whether SciPy happened to
+be installed, and SciPy is an optional extra, so the benchmark (with SciPy) and
+a default install (without) aligned differently. The exact (dense)
+transformation is now used whenever it fits in the memory budget, and the sparse
+one only for families too large for it.
+
+Re-run with it, the built-in engine's benchmark numbers change. BAliBASE: SP
+0.827 → 0.830, TC 0.674 → 0.676 (161 of the 163 families exact; the two largest
+still need the approximation within the 3 GB budget), now slightly ahead of MAFFT
+(p = 0.045). Simulations: SP 0.539 → 0.604, level with MAFFT's 0.608, the gain
+coming at high divergence (0.598 → 0.697 at 0.5 substitutions per site); the
+reliability AUC on its alignments is 0.855 (was 0.875). No other aligner is
+affected. `docs/validation.md` and `benchmarks/results/` carry the new rows, and
+two new tests check which transformation `align` chooses. 269 tests pass.
+
+**ClustalW in the benchmark.** ClustalW 2.1 joins the BAliBASE and simulation
+benchmarks (BAliBASE SP 0.743, TC 0.551); its rows are added to `balibase.csv`,
+`balibase_official.csv` and `simulation.csv`.
+
+**The BAliBASE tree comparison behind the paper's figure 2**:
+`benchmarks/bali_trees.py` and its results, `bali_trees_mafft.csv` and
+`bali_trees_builtin.csv`.
+
+**The simulation command in `docs/validation.md` is corrected.** It gave
+`--perturbation` and left the built-in engine at the default effort, whereas the
+published figures are the consistency score alone with the built-in engine at
+`--effort med`, so running it as written produced different numbers.
+
 ## 0.5.10 — every engine's settings, and ClustalW
 
 **PRANK was run with the wrong gap costs.** CRAIC always passed
@@ -103,9 +139,7 @@ install CRAIC. `pyproject.toml` now sets `pythonpath = ["."]` for pytest.
 **Raw results.** `benchmarks/results/` now holds the PRANK re-run (in place of
 the old PRANK rows in `balibase_official.csv` and `prank_percol.csv`) and the
 residue-masking runs (`residue_masking_nj.csv`, `residue_masking_ml.csv`); its
-README says which file is behind which table. The BAliBASE tree comparison
-behind the paper's figure 2 is new: `benchmarks/bali_trees.py` and its results,
-`bali_trees_mafft.csv` and `bali_trees_builtin.csv`.
+README says which file is behind which table.
 
 **Command line.** `craic align --param KEY=VALUE` (repeatable) sets any engine
 parameter, checked against the engine's own list, and `craic engines` lists them
