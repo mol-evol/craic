@@ -104,8 +104,9 @@ size threshold, but a family big enough will still exhaust memory. Use MAFFT.
 
 CRAIC runs without it — `craic/accel.py` is a NumPy mirror of the same kernel and
 the test suite cross-validates the two to ~1e-9, so results are identical and
-only speed differs. The status bar says which is in use (`core: rust` or
-`core: numpy`). If you want the Rust core, you need a Rust toolchain
+only speed differs, but by tens of times: an analysis that takes minutes with the
+core can take hours without it. The status bar says which is in use (`core: rust`
+or `core: numpy`), and the progress window warns when the core is missing. If you want the Rust core, you need a Rust toolchain
 (`rustup`) and then `./build_rust.sh`.
 
 **`cargo` cannot write `Cargo.lock` (Permission denied) in a cloud-synced folder.**

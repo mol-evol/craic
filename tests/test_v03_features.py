@@ -886,3 +886,106 @@ def test_engine_parameters_refuse_values_the_aligner_would_reject():
     # paste bypasses the validator on some platforms, so the read clamps too
     w.setText("99999")
     assert dlg.values()["iterations"] == 1000
+
+
+# --------------------------------------------------------------------------- #
+# Threads, progress and cancel for the long analyses (0.5.11)
+# --------------------------------------------------------------------------- #
+
+def _sim_alignment(taxa=8, seed=3):
+    d = simulate.simulate(taxa=taxa, root_len=150, seed=seed, indel_rate=2.0, bmax=0.4)
+    return d, Alignment(d["names"], d["true_rows"], Alphabet.DNA)
+
+
+def test_imap_keeps_input_order_and_stops_on_cancel(monkeypatch):
+    from craic import accel
+
+    monkeypatch.setattr(accel, "WORKERS", 4)
+    assert list(accel.imap(lambda x: x * x, range(50))) == [x * x for x in range(50)]
+    # very long sequences: one matrix at a time, as streaming promises
+    assert accel.in_flight(20000) == 1 and accel.in_flight(100) == 8
+    assert list(accel.imap(lambda x: -x, range(5), ahead=1)) == [0, -1, -2, -3, -4]
+    seen = []
+
+    def cancelled():
+        return len(seen) >= 3
+
+    with pytest.raises(accel.Cancelled):
+        for y in accel.imap(lambda x: x, range(50), cancelled):
+            seen.append(y)
+
+
+@pytest.mark.parametrize("workers", [1, 3])
+def test_scores_and_alignments_do_not_depend_on_the_thread_count(monkeypatch, workers):
+    """Threads change the speed and nothing else: every sum is taken in the same
+    order, so the results are identical bit for bit."""
+    from craic import accel
+    from craic.ambiguity import reliability as R
+
+    d, aln = _sim_alignment()
+
+    def run():
+        return (progressive.align(d["seqs"], Alphabet.DNA, effort="med").rows,
+                progressive.align(d["seqs"], Alphabet.DNA, effort="min").rows,
+                R.analyse(aln, n_replicates=3))
+
+    monkeypatch.setattr(accel, "WORKERS", 1)
+    med1, min1, rep1 = run()
+    monkeypatch.setattr(accel, "WORKERS", workers)
+    med2, min2, rep2 = run()
+    assert med1 == med2 and min1 == min2
+    for field in ("col_consistency", "col_perturbation", "cell_consistency", "cell_perturbation"):
+        assert np.array_equal(getattr(rep1, field), getattr(rep2, field), equal_nan=True), field
+
+
+def test_analysis_progress_counts_every_pair_and_reaches_the_end():
+    from craic.ambiguity import reliability as R
+
+    _, aln = _sim_alignment()
+    seen = []
+    R.analyse(aln, n_replicates=3, progress=lambda d, t: seen.append((d, t)))
+    n_c, n_p = R.work(aln, n_replicates=3)
+    assert n_c == 8 * 7 // 2 and n_p == 3 * n_c
+    assert {t for _, t in seen} == {n_c + n_p}
+    done = [d for d, _ in seen]
+    assert done == sorted(done) and done[-1] == n_c + n_p
+
+
+def test_a_cancel_stops_the_analysis_rather_than_failing_replicates():
+    from craic import accel
+    from craic.ambiguity import reliability as R
+
+    _, aln = _sim_alignment()
+    calls = []
+
+    def cancelled():
+        calls.append(1)
+        return len(calls) > 40          # part-way into the perturbation ensemble
+
+    with pytest.raises(accel.Cancelled):
+        R.analyse(aln, n_replicates=3, cancelled=cancelled)
+
+
+def test_combine_without_perturbation_is_the_consistency_score():
+    from craic.ambiguity import reliability as R
+
+    _, aln = _sim_alignment()
+    cons = R.consistency(aln)
+    rep = R.combine(aln, cons)
+    assert rep.n_replicates_ok == 0
+    assert np.array_equal(rep.col_combined, cons[0], equal_nan=True)
+
+
+def test_aligner_agreement_reports_each_engine_and_can_be_cancelled():
+    from craic import accel
+    from craic.ambiguity import disagreement
+    from craic.engines import builtin_variants
+
+    d, aln = _sim_alignment(taxa=5)
+    seen = []
+    disagreement.compute(d["seqs"], Alphabet.DNA, builtin_variants(), base_alignment=aln,
+                         progress=lambda k, n, label: seen.append((k, n)))
+    assert seen == [(0, 3), (1, 3), (2, 3), (3, 3)]
+    with pytest.raises(accel.Cancelled):
+        disagreement.compute(d["seqs"], Alphabet.DNA, builtin_variants(), base_alignment=aln,
+                             cancelled=lambda: True)

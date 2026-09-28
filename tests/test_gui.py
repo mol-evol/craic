@@ -117,6 +117,7 @@ def test_track_dropdown_selects_overlays():
     assert win.canvas._nt_scores is not None
     assert win.canvas._score_label == "Conservation"
     win.reliability = reliability.analyse(aln, do_perturbation=False)   # pre-cache
+    win._perturbation_skipped = True            # as if the user chose consistency only
     win.track_combo.setCurrentText("Consistency")
     assert win.canvas._score_label == "Consistency"
     win.track_combo.setCurrentText("(none)")
@@ -351,6 +352,10 @@ def test_figure_export_handlers_and_hotspots(tmp_path):
     win._set_alignment(progressive.align(
         [("a", "ATGCATGCATGCAAACATGC"), ("b", "ATGCATGCATGCATGC"),
          ("c", "ATGCATGCATGCGGGCATGC")], Alphabet.DNA))
+    # the report needs the reliability analysis, which runs in the background
+    win._ensure_reliability(lambda: None)
+    assert _pump_until(lambda: win.reliability is not None and win._job is None, 60)
+    assert win.reliability.n_replicates_ok            # small data: nothing to ask about
     # the figure-export handlers (bypassing the file dialog) all produce files
     win._last_probe = (0, 4)
     base = {"seq_i": 0, "seq_j": 2, "residue": 4, "selection": False, "theme": "Light"}
@@ -360,11 +365,12 @@ def test_figure_export_handlers_and_hotspots(tmp_path):
         win._render_fig({**base, "kind": kind, "fmt": ext}, out)
         assert os.path.getsize(out) > 0, kind
     # hotspot navigator selects a region (computes reliability on demand)
+    win.reliability = None
     win.canvas._sel_cols = None
     win._next_hotspot()
     # either it found a hotspot (selection set) or reported none — both are valid,
     # but reliability must now be cached
-    assert win.reliability is not None
+    assert _pump_until(lambda: win.reliability is not None and win._job is None, 60)
 
 
 def test_figure_export_dialog_picks_sequences():
@@ -1031,3 +1037,69 @@ def test_write_app_icon(tmp_path):
     img = QImage(str(out))
     assert (img.width(), img.height()) == (256, 256)
     assert img.pixelColor(0, 0).alpha() == 0             # transparent round the tile
+
+
+# --------------------------------------------------------------------------- #
+# Long analyses: progress, the up-front question, cancel (0.5.11)
+# --------------------------------------------------------------------------- #
+
+def _three_seq_window():
+    win = CraicWindow()
+    win._set_alignment(progressive.align(
+        [("a", "ATGCATGCATGCAAACATGC"), ("b", "ATGCATGCATGCATGC"),
+         ("c", "ATGCATGCATGCGGGCATGC")], Alphabet.DNA))
+    return win
+
+
+def test_a_long_perturbation_run_is_offered_not_imposed():
+    _app()
+    win = _three_seq_window()
+    win._ASK_ABOVE_S = 0                        # every run counts as long here
+    asked = []
+    win._confirm_perturbation = lambda secs: asked.append(secs) or False
+    win.track_combo.setCurrentText("Reliability")
+    assert _pump_until(lambda: win._job is None and win.reliability is not None, 30)
+    assert asked and win.reliability.n_replicates_ok == 0      # consistency only
+    assert win.canvas._score_label == "Reliability (consistency only)"
+
+    # asking for the perturbation track by name offers the run again
+    win._confirm_perturbation = lambda secs: True
+    win.track_combo.setCurrentText("Perturbation")
+    assert _pump_until(lambda: win._job is None and win.reliability.n_replicates_ok > 0, 60)
+    assert win.canvas._score_label == "Perturbation"
+
+
+def test_cancelling_the_analysis_leaves_the_window_as_it_was():
+    _app()
+    win = _three_seq_window()
+    win.track_combo.setCurrentText("Reliability")
+    assert win._job is not None
+    win._cancel_job(win._job)
+    assert _pump_until(lambda: win._job is None, 30)
+    assert win.reliability is None and not win._reliability_waiters
+    assert win.track_combo.currentIndex() == 0 and win.track_combo.isEnabled()
+
+
+def test_an_edit_drops_the_running_analysis():
+    _app()
+    win = _three_seq_window()
+    win.track_combo.setCurrentText("Reliability")
+    assert win._job is not None
+    win._set_alignment(progressive.align([("x", "ACGTACGT"), ("y", "ACGTAAGT")], Alphabet.DNA))
+    assert win._job is None and win.reliability is None
+    _pump_until(lambda: False, 1)               # the old job's result arrives and is dropped
+    assert win.reliability is None
+
+
+def test_progress_dialog_says_how_long_is_left():
+    _app()
+    from craic.gui.dialogs import JobProgress, duration
+
+    assert duration(20) == "less than a minute"
+    assert duration(40 * 60) == "40 min"
+    assert duration(3 * 3600) == "3.0 h"
+    dlg = JobProgress("CRAIC", "Reliability")
+    dlg._t0 -= 60                                # a minute in, a quarter done
+    dlg.update_progress(25, 100)
+    assert "About 3 min left" in dlg.labelText()
+    assert dlg.value() == 250

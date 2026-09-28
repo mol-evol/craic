@@ -756,7 +756,8 @@ class _BuiltinVariant(BuiltinProgressive):
 
     def align(self, records, alphabet, **opts):
         return progressive.align(records, alphabet, delta=self._delta, epsilon=0.5,
-                                 estimate=False, consistency_iters=1)
+                                 estimate=False, consistency_iters=1,
+                                 cancelled=opts.get("cancelled"))
 
 
 def builtin_variants() -> List[AlignerEngine]:

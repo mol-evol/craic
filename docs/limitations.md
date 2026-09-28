@@ -31,6 +31,13 @@ same limit applies to scoring an alignment built elsewhere. Large families shoul
 be aligned with MAFFT and, if you want per-column reliability on them, scored
 with TCS or GUIDANCE rather than with CRAIC.
 
+The reliability analysis is dominated by the perturbation score, which
+re-aligns the sequences sixteen times. For 36 proteins of 1,000 residues the
+consistency score takes about a minute of processor time and the perturbation
+score about 40 minutes, shared among the cores. The window shows the time left,
+asks before a perturbation run of more than two minutes (the consistency score
+alone is always available), and can cancel at any point.
+
 ## The perturbation score is not GUIDANCE
 
 It is inspired by GUIDANCE and it is not equivalent to it, in two ways that

@@ -9,7 +9,9 @@ Every column and residue gets a confidence score from two independent signals: a
 score (the pair-HMM posterior that the residues a column groups together really are homologous)
 and a **perturbation** score (how many of a residue's asserted homologies survive re-alignment
 under perturbed conditions). Choose **Reliability** from the **Track** dropdown (it computes on
-first use), then read it on the track, as
+first use, with a progress window showing the time left; if the perturbation part will take
+more than two minutes CRAIC asks first, and you can keep the consistency score alone), then
+read it on the track, as
 **Confidence** colouring, or as a live mask preview via the **Mask** slider.
 To keep the columns and drop only the unreliable residues in them, use **Mask
 residues below the threshold** (Edit ▸ Edit alignment) — see

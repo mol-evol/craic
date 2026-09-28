@@ -14,9 +14,13 @@ Design notes
 
 from __future__ import annotations
 
+import os
+import threading
+from collections import deque
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from math import inf, log, exp
-from typing import Dict, List, Sequence
+from typing import Callable, Deque, Dict, Iterable, Iterator, List, Optional, Sequence
 
 import numpy as np
 
@@ -31,6 +35,74 @@ except Exception:  # pragma: no cover
 
 class Cancelled(Exception):
     """Raised when a caller asks an in-progress computation to stop."""
+
+
+# --------------------------------------------------------------------------- #
+# Parallel map over independent pair computations
+# --------------------------------------------------------------------------- #
+
+#: Threads used for independent pair-HMM computations. The Rust core releases
+#: the GIL, so threads run it on every core; the NumPy fallback holds the GIL
+#: and gains nothing, but loses nothing either.
+WORKERS = max(1, os.cpu_count() or 1)
+
+#: Memory (GB) the threads may hold in posterior matrices at once. Streaming
+#: exists to keep peak memory at one matrix; running it on many threads must not
+#: quietly multiply that for very long sequences.
+PARALLEL_MEM_GB = 1.0
+
+_POOL: Optional[ThreadPoolExecutor] = None
+_POOL_LOCK = threading.Lock()
+
+
+def in_flight(max_len: int) -> int:
+    """How many ``max_len`` x ``max_len`` posteriors :func:`imap` may hold at once
+    within :data:`PARALLEL_MEM_GB`: the float64 matrix, plus the Python list it
+    crosses the FFI as (about four times larger) while it is converted."""
+    per = max(1, max_len) ** 2 * 8 * 5
+    return max(1, min(2 * WORKERS, int(PARALLEL_MEM_GB * 1e9 // per)))
+
+
+def _pool() -> ThreadPoolExecutor:
+    global _POOL
+    with _POOL_LOCK:
+        if _POOL is None:
+            _POOL = ThreadPoolExecutor(WORKERS, thread_name_prefix="craic")
+        return _POOL
+
+
+def imap(fn: Callable, items: Iterable, cancelled=None, ahead: Optional[int] = None
+         ) -> Iterator:
+    """``fn(item)`` for each item, computed on :data:`WORKERS` threads and
+    yielded in input order.
+
+    Results come back in order, so any sum over them is the same, bit for bit,
+    as the serial one. At most ``ahead`` results (default ``2 * WORKERS``; see
+    :func:`in_flight` for large matrices) are in flight at once, which bounds
+    memory. ``fn`` must not call ``imap`` itself: the pool is shared, and nested
+    waits could exhaust it. ``cancelled()`` is polled before each submission.
+    """
+    ahead = 2 * WORKERS if ahead is None else max(1, ahead)
+    if WORKERS == 1 or ahead == 1:
+        for x in items:
+            if cancelled is not None and cancelled():
+                raise Cancelled()
+            yield fn(x)
+        return
+    pool = _pool()
+    pending: Deque[Future] = deque()
+    try:
+        for x in items:
+            if cancelled is not None and cancelled():
+                raise Cancelled()
+            pending.append(pool.submit(fn, x))
+            if len(pending) >= ahead:
+                yield pending.popleft().result()
+        while pending:
+            yield pending.popleft().result()
+    finally:
+        for f in pending:          # stopped early (cancel, error, or caller quit)
+            f.cancel()
 
 
 # --------------------------------------------------------------------------- #

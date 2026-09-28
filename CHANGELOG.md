@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.5.12 — long analyses use every core, show the time left, and can be stopped
+
+A Windows user scored 36 long protein sequences and the window appeared to
+hang: the reliability analysis was running, single-threaded, behind nothing but a
+status-bar message. It is mostly the perturbation ensemble, which re-aligns the
+sequences sixteen times; for 36 sequences of 1,000 residues that is about 40
+minutes on one core, and tens of times longer without the compiled core. Four
+changes:
+
+- Pairwise posteriors are computed on all CPU cores (`accel.imap`, threads over
+  the Rust kernel, which releases the GIL): the consistency score, the aligner's
+  all-pairs and streaming passes, and so every perturbation replicate. Results
+  are summed in a fixed order, so they are identical whatever the thread count;
+  re-running benchmark rows reproduces them exactly. Measured on two cores, the
+  36-sequence case is 1.9 times faster.
+- The reliability analysis and the aligner-agreement track run behind a progress
+  window with the time left and a Cancel button.
+- The consistency score comes first. Its time predicts the perturbation
+  ensemble's (every sequence pair costs about the same), and if that will be over
+  two minutes CRAIC asks before running it; the user can keep the consistency
+  score alone, and cancelling the ensemble part-way keeps it too. Choosing the
+  Perturbation track later offers the run again. Without the compiled core, the
+  progress window and the question say so.
+- Exporting the confidence report no longer computes the analysis on the
+  interface thread, which froze the window.
+
+`reliability.analyse`, `consistency` and `perturbation` take `progress` and
+`cancelled`; `reliability.work` gives the pairs each stage aligns and
+`reliability.combine` assembles a report from the two stages. 280 tests pass.
+Results are unchanged from 0.5.11.
+
 ## 0.5.11 — the exact consistency transformation
 
 **The built-in engine no longer approximates when it does not have to.** With

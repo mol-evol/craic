@@ -29,7 +29,8 @@ from ..engines import CodonAware, available_engines, builtin_variants
 from . import colors
 from .canvas import AlignmentCanvas
 from . import tracks as track_mod
-from .dialogs import EngineParamsDialog, FigureExportDialog, SimulateDialog, _fmt_params
+from .dialogs import (EngineParamsDialog, FigureExportDialog, JobProgress, SimulateDialog,
+                      _fmt_params, duration)
 from .document import Document
 from .panels import ColumnInspector, PosteriorPanel, SandboxPanel, ScoreLegend
 from .workers import run_async, run_cancellable
@@ -44,6 +45,20 @@ _TRUTH_TRACK = track_mod.index_of(_TRACK_DEFS, "truth")
 _CHEAP_TRACKS = frozenset(i for i, t in enumerate(_TRACK_DEFS) if t.cheap and i != 0)
 # The residue-colouring modes, in the order the combo lists them.
 _COLOUR_RESIDUE, _COLOUR_CONFIDENCE, _COLOUR_TRUTH = 0, 1, 2
+# Said wherever a long analysis starts without the compiled core.
+_NO_CORE = ("CRAIC's compiled core is not installed, so this runs tens of times more "
+            "slowly than it should. Reinstalling CRAIC usually fixes that.")
+
+
+def _close_job_dialog(job: dict) -> None:
+    """Close a job's progress dialog, once, without it reporting a cancel:
+    closing a QProgressDialog emits ``canceled``."""
+    dlg = job.pop("dialog", None)
+    if dlg is None:
+        return
+    dlg.canceled.disconnect()
+    dlg.close()
+    dlg.deleteLater()
 
 
 def _conservation(aln) -> np.ndarray:
@@ -95,6 +110,10 @@ class CraicWindow(QMainWindow):
         self.doc = Document(self)
         self.reliability: Optional[rel_mod.Reliability] = None
         self.agreement: Optional[np.ndarray] = None
+        self._job: Optional[dict] = None            # the long analysis running, if any
+        self._reliability_waiters: list = []        # what is waiting for the reliability report
+        self._perturbation_skipped = False          # the user settled for consistency alone
+        self._consistency_secs: Optional[float] = None
         # Coalesce a burst of edits into one recovery write.
         self._autosave_timer = QTimer(self)
         self._autosave_timer.setSingleShot(True)
@@ -1022,6 +1041,7 @@ class CraicWindow(QMainWindow):
     def closeEvent(self, event):
         """Never discard a curation session silently."""
         if self._confirm_discard("Quitting"):
+            self._stop_job()
             self._clear_autosave()
             event.accept()
         else:
@@ -1101,19 +1121,6 @@ class CraicWindow(QMainWindow):
     def _doc_generation(self):
         return self.doc.generation
 
-    def _stale_guard(self, fn):
-        """Wrap a background-task callback so a result computed for a previous
-        alignment is dropped instead of being applied to the current one."""
-        gen = self._doc_generation
-
-        def wrapped(result):
-            if gen != self._doc_generation:
-                self._idle_track()
-                return
-            fn(result)
-
-        return wrapped
-
     def _set_alignment(self, aln: Alignment, dirty: bool = True):
         # ``dirty`` is False only when the document is being *replaced* rather
         # than changed — opening a file, recovering a session — since those are
@@ -1125,8 +1132,12 @@ class CraicWindow(QMainWindow):
         previous_track = self.track_combo.currentIndex()
         previous_colour = self.color_combo.currentIndex()
         self.doc.set_alignment(aln, dirty=dirty)      # also rescores against the reference
+        self._stop_job()                   # an analysis of the old alignment is no use now
         self.reliability = None
         self.agreement = None
+        self._reliability_waiters = []
+        self._perturbation_skipped = False
+        self._consistency_secs = None
         self._warned_frame_breaks = False     # warn again for this new alignment
         self.canvas.set_alignment(aln)
         self.canvas.set_annotations(self._annotations)
@@ -1552,24 +1563,190 @@ class CraicWindow(QMainWindow):
         box.setDetailedText(msg[-4000:])
         box.exec()
 
-    def _ensure_reliability(self, then):
-        """Compute the reliability analysis once in the background, then run
-        `then`. Cached, so it only runs the first time it's needed."""
-        if self.reliability is not None:
-            self.canvas.set_cell_scores(self.reliability.cell_combined)
-            then()
-            return
-        aln = self.aln
-        self._busy_track("Analysing reliability (consistency + perturbation)…")
+    # ------------------------------------------------------------------ #
+    # Long analyses: one at a time, off the GUI thread, behind a progress
+    # dialog that shows the time left and can cancel.
+    # ------------------------------------------------------------------ #
+    def _start_job(self, kind, what, work, on_done, on_cancel=None, on_error=None):
+        """Run ``work(report, cancelled)`` in the background.
 
-        def done(rep):
+        ``on_done(result, seconds)`` runs when it finishes, ``on_cancel()`` if the
+        user cancels it and ``on_error(message)`` if it fails, each only while
+        the same alignment is on screen: a result for a replaced alignment is
+        dropped.
+        """
+        aln = self.aln
+        text = f"{what}\n{aln.n_seqs:,} sequences × {aln.length:,} columns"
+        if accel.backend() != "rust":
+            text += "\n\n" + _NO_CORE
+        dlg = JobProgress("CRAIC", text, self)
+        job = {"kind": kind, "dialog": dlg, "cancelled": False, "token": None}
+        gen, t0 = self._doc_generation, time.monotonic()
+
+        def finish(callback, *args):
+            _close_job_dialog(job)
+            if self._job is job:
+                self._job = None
+                self._idle_track()
+            if gen != self._doc_generation:
+                return
+            if job["cancelled"]:
+                callback, args = on_cancel, ()
+            if callback is not None:
+                callback(*args)
+
+        def progress(done, total, label):
+            if self._job is job:
+                dlg.update_progress(done, total, label)
+
+        dlg.canceled.connect(lambda: self._cancel_job(job))
+        job["token"] = run_cancellable(
+            work, lambda r: finish(on_done, r, time.monotonic() - t0),
+            lambda msg: finish(on_error or self._on_track_error, msg), progress)
+        self._job = job
+        self._busy_track(what + "…")
+
+    def _cancel_job(self, job):
+        job["cancelled"] = True
+        job["token"].cancel()
+        self.statusBar().showMessage("Cancelling…")
+
+    def _stop_job(self):
+        """Cancel the running analysis, if any, without waiting for it."""
+        job, self._job = self._job, None
+        if job is not None:
+            self._cancel_job(job)
+            _close_job_dialog(job)
             self._idle_track()
-            self.reliability = rep
+
+    def _busy_elsewhere(self, kind) -> bool:
+        """True, with a word to the user, if a different analysis is running."""
+        if self._job is not None and self._job["kind"] != kind:
+            self.statusBar().showMessage(
+                "Another analysis is running — wait for it to finish, or cancel it.", 6000)
+            return True
+        return False
+
+    def _reset_overlay(self, kind):
+        """Put the track (and, for reliability, the colouring) back to plain when
+        the analysis it was waiting for is cancelled."""
+        track = _TRACK_DEFS[self.track_combo.currentIndex()]
+        if track.kind == kind:
+            self.track_combo.blockSignals(True)
+            self.track_combo.setCurrentIndex(0)
+            self.track_combo.blockSignals(False)
+            self.canvas.set_column_scores(None)
+        if kind == "reliability" and self.color_combo.currentIndex() == _COLOUR_CONFIDENCE:
+            self.color_combo.blockSignals(True)
+            self.color_combo.setCurrentIndex(_COLOUR_RESIDUE)
+            self.color_combo.blockSignals(False)
+            self.canvas.set_color_mode("residue")
+        self._update_legend()
+
+    #: Ask before starting a perturbation ensemble predicted to take longer (s).
+    _ASK_ABOVE_S = 120
+
+    def _ensure_reliability(self, then):
+        """Run ``then`` once the reliability report is ready.
+
+        Computed once per alignment, in the background: the consistency score
+        first, which is quick, then the perturbation ensemble, which re-aligns
+        the sequences sixteen times and is nearly all of the cost. Every
+        sequence pair costs about the same in both, so the consistency stage's
+        time predicts the ensemble's; if that is long the user is asked first,
+        and can settle for the consistency score alone.
+        """
+        rep = self.reliability
+        if rep is not None and (rep.n_replicates_ok or self._perturbation_skipped):
             self.canvas.set_cell_scores(rep.cell_combined)
             then()
+            return
+        if self._busy_elsewhere("reliability"):
+            return
+        self._reliability_waiters.append(then)
+        if self._job is not None:
+            return                                   # already on its way
+        if rep is None:
+            self._run_consistency()
+        else:
+            self._offer_perturbation()
 
-        run_async(lambda: rel_mod.analyse(aln, do_perturbation=True),
-                  self._stale_guard(done), self._on_track_error)
+    def _run_consistency(self):
+        aln = self.aln
+
+        def work(report, cancelled):
+            return rel_mod.consistency(aln, progress=report, cancelled=cancelled)
+
+        def done(cons, secs):
+            self._consistency_secs = secs
+            self.reliability = rel_mod.combine(aln, cons)
+            self._offer_perturbation()
+
+        self._start_job("reliability", "Reliability: consistency score", work, done,
+                        on_cancel=self._drop_waiters, on_error=self._reliability_failed)
+
+    def _offer_perturbation(self):
+        aln, rep = self.aln, self.reliability
+        n_c, n_p = rel_mod.work(aln)
+        # a pair costs the same in both stages; merging adds a little on top
+        est = 1.2 * (self._consistency_secs or 0.0) / max(1, n_c) * n_p
+        if est > self._ASK_ABOVE_S and not self._confirm_perturbation(est):
+            self._skip_perturbation()
+            return
+        cons = (rep.col_consistency, rep.cell_consistency)
+
+        def work(report, cancelled):
+            stats: dict = {}
+            pert = rel_mod.perturbation(aln, stats=stats, progress=report, cancelled=cancelled)
+            return pert, stats
+
+        def done(result, _secs):
+            pert, stats = result
+            self.reliability = rel_mod.combine(aln, cons, pert, stats)
+            self._release_waiters()
+
+        self._start_job("reliability", "Reliability: perturbation score (16 re-alignments)",
+                        work, done, on_cancel=self._skip_perturbation,
+                        on_error=self._reliability_failed)
+
+    def _confirm_perturbation(self, seconds: float) -> bool:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Question)
+        box.setWindowTitle("Perturbation score")
+        box.setText("The consistency score is ready. The perturbation score will take "
+                    f"about {duration(seconds)} more on this computer.")
+        box.setInformativeText(
+            f"It re-aligns all {self.aln.n_seqs:,} sequences sixteen times. You can cancel "
+            "it part-way and keep the consistency score. Without it, Reliability shows "
+            "the consistency score alone."
+            + ("\n\n" + _NO_CORE if accel.backend() != "rust" else ""))
+        run = box.addButton("Run it", QMessageBox.AcceptRole)
+        box.addButton("Consistency only", QMessageBox.RejectRole)
+        box.setDefaultButton(run)
+        box.exec()
+        return box.clickedButton() is run
+
+    def _skip_perturbation(self):
+        self._perturbation_skipped = True
+        self.statusBar().showMessage(
+            "Reliability is the consistency score alone: the perturbation score was not run.",
+            8000)
+        self._release_waiters()
+
+    def _release_waiters(self):
+        waiters, self._reliability_waiters = self._reliability_waiters, []
+        if self.reliability is not None:
+            self.canvas.set_cell_scores(self.reliability.cell_combined)
+        for then in waiters:
+            then()
+
+    def _drop_waiters(self):
+        self._reliability_waiters = []
+        self._reset_overlay("reliability")
+
+    def _reliability_failed(self, msg):
+        self._reliability_waiters = []
+        self._on_track_error(msg)
 
     def _on_colour(self, *_):
         idx = self.color_combo.currentIndex()
@@ -1655,17 +1832,6 @@ class CraicWindow(QMainWindow):
         nt = self.canvas.selection_nt()
         return nt if nt else (0, self.aln.length)
 
-    def _reliability_now(self):
-        """Per-column reliability, computing it synchronously if not cached."""
-        if self.reliability is None:
-            from PySide6.QtWidgets import QApplication
-            QApplication.setOverrideCursor(Qt.WaitCursor)
-            try:
-                self.reliability = rel_mod.analyse(self.aln, do_perturbation=True)
-            finally:
-                QApplication.restoreOverrideCursor()
-        return self.reliability.col_combined
-
     def _render_fig(self, v: dict, path: str):
         """Render a figure from an explicit parameter dict (see FigureExportDialog)."""
         aln = self.aln
@@ -1683,7 +1849,7 @@ class CraicWindow(QMainWindow):
                                         reliability=rel, title="CRAIC — alignment", theme=theme)
             figures.export_alignment(aln, path, opt=opt)
         elif kind == "report":
-            figures.confidence_report(aln, self._reliability_now(), path, theme=theme)
+            figures.confidence_report(aln, self.reliability.col_combined, path, theme=theme)
         elif kind == "logo":
             figures.uncertainty_logo(aln, c0, c1, path, reliability=rel, level=level, theme=theme)
         elif kind == "arcs":
@@ -1718,7 +1884,12 @@ class CraicWindow(QMainWindow):
         path, _ = QFileDialog.getSaveFileName(self, "Export figure", v["kind"] + ext, filt)
         if not path:
             return
-        from PySide6.QtWidgets import QApplication
+        if v["kind"] == "report":          # needs the reliability report: wait for it
+            self._ensure_reliability(lambda: self._write_fig(v, path))
+        else:
+            self._write_fig(v, path)
+
+    def _write_fig(self, v: dict, path: str):
         QApplication.setOverrideCursor(Qt.WaitCursor)
         try:
             self._render_fig(v, path)
@@ -2075,20 +2246,26 @@ class CraicWindow(QMainWindow):
     def _run_agreement(self):
         """Re-align with several engines and overlay how often they reproduce
         the *current* alignment's columns — without replacing the alignment."""
+        if self._busy_elsewhere("agreement"):
+            self._reset_overlay("agreement")
+            return
         engines = self._engines if len(self._engines) > 1 else builtin_variants()
         params_by_key = {e.key: self._params_for(e) for e in engines}
         records = self._source_records()
         alphabet = self.aln.alphabet
         base = self.aln
-        self._busy_track("Comparing aligners…")
-        run_async(lambda: disagree_mod.compute(records, alphabet, engines,
-                                               base_alignment=base, params_by_key=params_by_key),
-                  self._stale_guard(self._on_agreement_ready), self._on_track_error)
 
-    def _on_agreement_ready(self, result):
-        self._idle_track()
-        self.agreement = result.col_agreement
-        self._show_track(self.agreement, "Aligner agreement")
+        def work(report, cancelled):
+            return disagree_mod.compute(records, alphabet, engines, base_alignment=base,
+                                        params_by_key=params_by_key, progress=report,
+                                        cancelled=cancelled)
+
+        def done(result, _secs):
+            self.agreement = result.col_agreement
+            self._show_track(self.agreement, "Aligner agreement")
+
+        self._start_job("agreement", "Aligner agreement: re-aligning with each engine", work,
+                        done, on_cancel=lambda: self._reset_overlay("agreement"))
 
     # ------------------------------------------------------------------ #
     def _on_track(self, *_):
@@ -2110,6 +2287,8 @@ class CraicWindow(QMainWindow):
         elif track.kind == "mask":
             self._apply_binary_trim(track.compute, track.label)
         elif track.kind == "reliability":
+            if track.key == "perturbation":
+                self._perturbation_skipped = False     # asked for by name: offer it again
             self._ensure_reliability(lambda: self._apply_reliability_track(track))
         elif track.kind == "agreement":
             if self.agreement is not None:
@@ -2129,7 +2308,14 @@ class CraicWindow(QMainWindow):
             self._report_accuracy()            # …and keep the numbers current
 
     def _apply_reliability_track(self, track):
-        self._show_track(getattr(self.reliability, track.field), track.label)
+        label = track.label
+        if not self.reliability.n_replicates_ok:          # consistency only
+            if track.key == "perturbation":
+                self._reset_overlay("reliability")
+                return
+            if track.key == "reliability":
+                label += " (consistency only)"
+        self._show_track(getattr(self.reliability, track.field), label)
 
     def _show_track(self, scores, label):
         self.canvas.set_column_scores(scores, label)

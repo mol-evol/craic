@@ -1,17 +1,20 @@
 """The dialogs.
 
-Small, self-contained forms: aligner parameters, the figure exporter, and the
-teaching-dataset generator. They were in ``app.py``, which is already the largest
-file in the project and does not need to also hold three unrelated widgets that
-nothing else in the window touches.
+Small, self-contained forms: aligner parameters, the figure exporter, the
+teaching-dataset generator, and the progress dialog for long analyses. They were
+in ``app.py``, which is already the largest file in the project and does not need
+to also hold unrelated widgets that nothing else in the window touches.
 """
 
 from __future__ import annotations
 
+import time
+
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QDoubleValidator, QIntValidator
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel,
-    QLineEdit, QSpinBox,
+    QLineEdit, QProgressDialog, QSpinBox,
 )
 
 from .panels import exclusive_pair
@@ -328,3 +331,50 @@ class FigureExportDialog(QDialog):
             "theme": self.theme.currentText(),
             "fmt": self.fmt.currentText(),
         }
+
+
+def duration(seconds: float) -> str:
+    """A time span as a person would say it: "less than a minute", "12 min", "2.5 h"."""
+    if seconds < 60:
+        return "less than a minute"
+    if seconds < 3600:
+        return f"{round(seconds / 60)} min"
+    return f"{seconds / 3600:.1f} h"
+
+
+class JobProgress(QProgressDialog):
+    """Progress for a long background analysis: how far it has got, the time
+    left, and a Cancel button.
+
+    Not modal, so the alignment can still be read while it runs. It appears
+    only if the job lasts more than a moment, and the time left is projected
+    from the rate so far, so it is honest from the first few seconds on.
+    """
+
+    def __init__(self, title: str, what: str, parent=None):
+        super().__init__(what, "Cancel", 0, 1000, parent)
+        self.setWindowTitle(title)
+        self.setWindowModality(Qt.NonModal)
+        self.setMinimumDuration(800)
+        self.setAutoClose(False)
+        self.setAutoReset(False)
+        self.setMinimumWidth(420)
+        self._what = what
+        self._t0 = time.monotonic()
+        self._shown_at = 0.0
+
+    def update_progress(self, done: int, total: int, label: str = "") -> None:
+        if total <= 0 or self.wasCanceled():
+            return
+        now = time.monotonic()
+        if done < total and now - self._shown_at < 0.25:    # a pair can take milliseconds
+            return
+        self._shown_at = now
+        frac = min(1.0, done / total)
+        elapsed = now - self._t0
+        if frac <= 0 or elapsed < 3:
+            left = "Estimating the time left…"
+        else:
+            left = f"About {duration(elapsed * (1 - frac) / frac)} left"
+        self.setLabelText("\n".join(x for x in (self._what, label, left) if x))
+        self.setValue(int(frac * 1000))

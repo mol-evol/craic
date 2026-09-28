@@ -42,7 +42,9 @@ to see what's conserved.
 ## 4. Find the uncertain regions
 
 Choose **Reliability** from the **Track** dropdown — the first time, CRAIC computes the analysis
-in the background and caches it. It scores every column two independent ways — *consistency*
+in the background and caches it, with a progress window showing the time left. (On a large
+family the perturbation part can take a while; CRAIC then asks first, and you can keep the
+consistency score alone.) It scores every column two independent ways — *consistency*
 (does the unaligned-sequence evidence support this column?) and *perturbation* (do its
 homologies survive re-alignment across an ensemble of bootstrapped guide trees?) — and lights
 up the **track** above the alignment. Green is confident; red/amber is not. The variable loop should glow red

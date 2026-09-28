@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 
 from .. import domain
+from ..accel import Cancelled
 from ..domain import Alignment, Alphabet, IdMismatch, match_ids
 
 
@@ -76,6 +77,8 @@ def compute(
     reference: int = 0,
     base_alignment: Optional[Alignment] = None,
     params_by_key: Optional[dict] = None,
+    progress=None,
+    cancelled=None,
 ) -> DisagreementResult:
     """Per-column agreement of several aligners.
 
@@ -83,16 +86,26 @@ def compute(
     often each engine reproduces the homologies the current alignment asserts —
     so the result annotates the alignment you already have rather than replacing
     it. Otherwise the first engine's alignment is used as the reference.
+    ``progress(done, total, label)`` is called before each engine runs;
+    ``cancelled()`` is checked between engines and handed to those that can stop
+    part-way (the built-in one).
     """
     others: List[Tuple[str, Alignment]] = []
-    for eng in engines:
-        if not eng.available():
-            continue
+    engines = [e for e in engines if e.available()]
+    for k, eng in enumerate(engines):
+        if cancelled is not None and cancelled():
+            raise Cancelled()
+        if progress is not None:
+            progress(k, len(engines), f"{eng.label} ({k + 1} of {len(engines)})")
         try:
             p = params_by_key.get(eng.key, {}) if params_by_key else {}
-            others.append((eng.label, eng.align(records, alphabet, **p)))
+            others.append((eng.label, eng.align(records, alphabet, cancelled=cancelled, **p)))
+        except Cancelled:
+            raise
         except Exception:
             continue
+    if progress is not None:
+        progress(len(engines), len(engines), "")
 
     if base_alignment is not None:
         ref_label, ref = "current alignment", base_alignment

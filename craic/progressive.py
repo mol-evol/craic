@@ -79,13 +79,14 @@ def _kmer_distance(seqs: Sequence[str], k: int = 3, rng=None) -> np.ndarray:
 # Posterior decoding pieces
 # --------------------------------------------------------------------------- #
 
-def _all_pairs_posteriors(seqs, model, delta, epsilon) -> Dict[Tuple[int, int], np.ndarray]:
+def _all_pairs_posteriors(seqs, model, delta, epsilon,
+                          cancelled=None) -> Dict[Tuple[int, int], np.ndarray]:
     n = len(seqs)
-    P: Dict[Tuple[int, int], np.ndarray] = {}
-    for x in range(n):
-        for y in range(x + 1, n):
-            P[(x, y)] = accel.posterior_matrix(seqs[x], seqs[y], model, delta, epsilon)
-    return P
+    pairs = [(x, y) for x in range(n) for y in range(x + 1, n)]
+    posts = accel.imap(lambda p: accel.posterior_matrix(seqs[p[0]], seqs[p[1]], model,
+                                                        delta, epsilon),
+                       pairs, cancelled, accel.in_flight(max(map(len, seqs))))
+    return dict(zip(pairs, posts))
 
 
 def _post(P, x, y):
@@ -171,29 +172,46 @@ def consistency_transform(P, n, iters=2, cancelled=None,
     return P
 
 
-def _merge(rows_a, rows_b, post, cancelled=None):
+def _merge(rows_a, rows_b, post, cancelled=None, parallel=False, tick=None):
     """Merge two profiles by pure-MEA decoding of their summed posterior scores.
 
     ``post(x, y)`` returns the pairwise posterior for original sequences x, y --
     either a lookup into stored (consistency-transformed) posteriors, or an
     on-demand computation (streaming). Each profile is a list of
-    ``(orig_index, gapped_row)``; returns the merged list."""
+    ``(orig_index, gapped_row)``; returns the merged list. ``parallel`` computes
+    the posteriors on several threads (worth it only when ``post`` computes
+    rather than looks up); the sum is taken in the same order either way, so
+    the result is identical. ``tick()`` is called once per sequence pair."""
     na, nb = len(rows_a), len(rows_b)
     La, Lb = len(rows_a[0][1]), len(rows_b[0][1])
-    ma = [domain.residue_index_array(r) for _, r in rows_a]
-    mb = [domain.residue_index_array(r) for _, r in rows_b]
+
+    def cols(rows):
+        out = []
+        for _, r in rows:
+            m = domain.residue_index_array(r)
+            c = np.where(m >= 0)[0]
+            out.append((c, m[c]))
+        return out
+
+    ca_, cb_ = cols(rows_a), cols(rows_b)
+    pairs = [(xi, yi) for xi in range(na) for yi in range(nb)]
+
+    def one(p):
+        return post(rows_a[p[0]][0], rows_b[p[1]][0])
+
+    longest = max(max((len(c) for c, _ in ca_), default=0), max((len(c) for c, _ in cb_), default=0))
+    posts = (accel.imap(one, pairs, cancelled, accel.in_flight(longest)) if parallel
+             else map(one, pairs))
     S = np.zeros((La, Lb))
-    for xi, (gx, _) in enumerate(rows_a):
-        cax = np.where(ma[xi] >= 0)[0]
-        rix = ma[xi][cax]
-        for yi, (gy, _) in enumerate(rows_b):
-            if cancelled is not None and cancelled():
-                raise Cancelled()
-            Pm = post(gx, gy)
-            cby = np.where(mb[yi] >= 0)[0]
-            rjy = mb[yi][cby]
-            if cax.size and cby.size:
-                S[np.ix_(cax, cby)] += Pm[np.ix_(rix, rjy)]
+    for (xi, yi), Pm in zip(pairs, posts):
+        if cancelled is not None and cancelled():
+            raise Cancelled()
+        cax, rix = ca_[xi]
+        cby, rjy = cb_[yi]
+        if cax.size and cby.size:
+            S[np.ix_(cax, cby)] += Pm[np.ix_(rix, rjy)]
+        if tick is not None:
+            tick()
     S /= (na * nb)
     ca, cb = accel.mea_align(S, cancelled)
 
@@ -203,7 +221,8 @@ def _merge(rows_a, rows_b, post, cancelled=None):
     return emit(rows_a, ca) + emit(rows_b, cb)
 
 
-def _progressive(seqs, post, dist=None, guide_seed=None, progress=None, cancelled=None):
+def _progressive(seqs, post, dist=None, guide_seed=None, progress=None, cancelled=None,
+                 parallel=False, tick=None):
     n = len(seqs)
     if dist is not None:
         D = dist
@@ -225,7 +244,7 @@ def _progressive(seqs, post, dist=None, guide_seed=None, progress=None, cancelle
             progress(done, total)
         _, a, b = min((Dm[(min(x, y), max(x, y))], x, y)
                       for ix, x in enumerate(active) for y in active[ix + 1:])
-        merged = _merge(profiles[a], profiles[b], post, cancelled)
+        merged = _merge(profiles[a], profiles[b], post, cancelled, parallel, tick)
         gid = nxt; nxt += 1
         profiles[gid] = merged
         sizes[gid] = sizes[a] + sizes[b]
@@ -408,6 +427,7 @@ def align(
     guide_seed: Optional[int] = None,
     sparse: Optional[bool] = None,
     matrix: Optional[str] = None,
+    tick=None,
 ) -> Alignment:
     """Progressive multiple alignment by posterior decoding, tiered by memory.
 
@@ -422,7 +442,10 @@ def align(
     is called before each merge and ``cancelled()`` is polled throughout.
     ``matrix`` names the protein substitution matrix (default
     ``accel.PROTEIN_MATRIX``); it is ignored for nucleotides and when ``model``
-    is given.
+    is given. ``tick()`` is called once per sequence pair as the progressive
+    pass merges it, n(n-1)/2 times in all, for a caller that needs finer
+    progress than one step per merge. Pairwise posteriors are computed on
+    :data:`accel.WORKERS` threads; the result does not depend on how many.
     """
     preset = _EFFORT.get(effort, _EFFORT["med"])
     consistency_iters = preset["consistency_iters"] if consistency_iters is None else consistency_iters
@@ -460,7 +483,8 @@ def align(
         def pilot_post(x, y):
             return accel.posterior_matrix(seqs[x], seqs[y], pm, _DEFAULT_DELTA, _DEFAULT_EPSILON)
 
-        pilot = [r for _, r in _progressive(seqs, pilot_post, cancelled=cancelled)]
+        pilot = [r for _, r in _progressive(seqs, pilot_post, cancelled=cancelled,
+                                            parallel=True)]
         theta = round(min(0.95, max(0.55, _estimate_identity(pilot))), 2)
         gdelta, gepsilon = _estimate_gaps(pilot)
         model = emission_model(kind, theta, matrix)
@@ -477,7 +501,7 @@ def align(
         epsilon = _DEFAULT_EPSILON
 
     if use_consistency:
-        raw = _all_pairs_posteriors(seqs, model, delta, epsilon)
+        raw = _all_pairs_posteriors(seqs, model, delta, epsilon, cancelled)
         D = _posterior_distances(seqs, raw) if guide == "posterior" else None
         P = consistency_transform(raw, n, consistency_iters, cancelled, sparse=sparse)
 
@@ -489,7 +513,8 @@ def align(
             return accel.posterior_matrix(seqs[x], seqs[y], model, delta, epsilon)
 
     final = _progressive(seqs, post, dist=D, guide_seed=guide_seed,
-                         progress=progress, cancelled=cancelled)
+                         progress=progress, cancelled=cancelled,
+                         parallel=not use_consistency, tick=tick)
     if refine_iters > 0 and use_consistency:
         rng = np.random.default_rng(0 if guide_seed is None else guide_seed)
         final = _refine(final, post, refine_iters, rng, cancelled)

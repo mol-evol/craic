@@ -63,19 +63,27 @@ def _col_nanmean(mat: np.ndarray) -> np.ndarray:
 # Consistency (uses the pair-HMM posterior core)
 # --------------------------------------------------------------------------- #
 
+#: Sequence pairs the consistency score samples at most (all of them below).
+MAX_PAIRS = 300
+
 def consistency(
     aln: Alignment,
     model: Optional[accel.EmissionModel] = None,
-    max_pairs: int = 300,
+    max_pairs: int = MAX_PAIRS,
     seed: int = 0,
     delta: Optional[float] = None,
     epsilon: Optional[float] = None,
+    progress=None,
+    cancelled=None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Return (col_score[length], cell_score[n, length] with nan at gaps).
 
     ``model``, ``delta`` and ``epsilon`` default to the values estimated from
     ``aln`` itself rather than to library defaults; pass them explicitly only
-    to score under a model of your own choosing.
+    to score under a model of your own choosing. The pair posteriors are
+    computed on several threads and summed in a fixed order, so the scores do
+    not depend on the thread count. ``progress(done, total)`` is called once per
+    sequence pair; ``cancelled()`` is polled throughout.
     """
     est_model, est_delta, est_epsilon = progressive.estimate_params(aln.rows, aln.alphabet)
     if model is None:
@@ -100,8 +108,13 @@ def consistency(
     col_sum = np.zeros(L)
     col_cnt = np.zeros(L)
 
-    for i, j in pairs:
-        P = accel.posterior_matrix(aln.rows[i], aln.rows[j], model, delta, epsilon)
+    def post(p):
+        return accel.posterior_matrix(aln.rows[p[0]], aln.rows[p[1]], model, delta, epsilon)
+
+    ahead = accel.in_flight(max(len(domain.ungap(r)) for r in aln.rows))
+    for k, ((i, j), P) in enumerate(zip(pairs, accel.imap(post, pairs, cancelled, ahead)), 1):
+        if progress is not None:
+            progress(k, len(pairs))
         if P.size == 0:
             continue
         mi, mj = maps[i], maps[j]
@@ -141,6 +154,8 @@ def perturbation(
     seed: int = 0,
     deltas: Tuple[float, ...] = _PERTURB_DELTAS,
     stats: Optional[Dict[str, int]] = None,
+    progress=None,
+    cancelled=None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Return (col_score[length], cell_score[n, length] with nan at gaps).
 
@@ -168,6 +183,11 @@ def perturbation(
     Raises :class:`EnsembleFailure` if no replicate completes. If some fail, a
     warning is issued and the surviving replicates are used; ``analyse`` records
     the count on the report.
+
+    ``progress(done, total)`` counts sequence pairs aligned across the whole
+    ensemble (``n_replicates`` x n(n-1)/2); ``cancelled()`` is polled
+    throughout, and a cancel raises :class:`accel.Cancelled` rather than
+    counting as a failed replicate.
     """
     alphabet = alphabet or aln.alphabet
     seqs = [domain.ungap(r) for r in aln.rows]
@@ -176,14 +196,27 @@ def perturbation(
     model, _est_delta, _est_epsilon = progressive.estimate_params(aln.rows, alphabet)
 
     wanted = max(1, n_replicates)
+    per_rep = len(seqs) * (len(seqs) - 1) // 2
+    total = wanted * per_rep
+    done = [0]
+
+    def tick():
+        done[0] += 1
+        if progress is not None:
+            progress(done[0], total)
+
     alts: List[Alignment] = []
     first_error: Optional[BaseException] = None
     for i in range(wanted):
+        done[0] = i * per_rep                # a failed replicate still moves the bar on
         try:
             alts.append(progressive.align(
                 records, alphabet, model=model,
                 delta=deltas[i % len(deltas)], epsilon=0.5,
-                estimate=False, consistency_iters=0, guide_seed=seed + i + 1))
+                estimate=False, consistency_iters=0, guide_seed=seed + i + 1,
+                cancelled=cancelled, tick=tick))
+        except accel.Cancelled:
+            raise
         except Exception as exc:          # noqa: BLE001 - recorded, then re-raised if total
             if first_error is None:
                 first_error = exc
@@ -339,16 +372,58 @@ def analyse(
     do_perturbation: bool = True,
     model: Optional[accel.EmissionModel] = None,
     n_replicates: int = 16,
+    progress=None,
+    cancelled=None,
 ) -> Reliability:
-    col_c, cell_c = consistency(aln, model=model)
-    stats: Dict[str, int] = {}
+    """Both scores and their combination.
+
+    ``progress(done, total)`` counts sequence pairs over both stages together
+    (see :func:`work`); ``cancelled()`` is polled throughout and a cancel raises
+    :class:`accel.Cancelled`.
+    """
+    n_c, n_p = work(aln, do_perturbation, n_replicates)
+
+    def stage(offset):
+        if progress is None:
+            return None
+        return lambda done, _total: progress(offset + done, n_c + n_p)
+
+    cons = consistency(aln, model=model, progress=stage(0), cancelled=cancelled)
+    pert, stats = None, {}
     if do_perturbation:
-        col_p, cell_p = perturbation(aln, n_replicates=n_replicates, stats=stats)
-    else:
+        pert = perturbation(aln, n_replicates=n_replicates, stats=stats,
+                            progress=stage(n_c), cancelled=cancelled)
+    return combine(aln, cons, pert, stats)
+
+
+def work(aln: Alignment, do_perturbation: bool = True,
+         n_replicates: int = 16, max_pairs: Optional[int] = None) -> Tuple[int, int]:
+    """Sequence pairs each stage aligns: ``(consistency, perturbation)``.
+
+    Every pair costs about the same (one pair-HMM over the two sequences), so
+    the time the consistency stage took predicts the perturbation stage well;
+    the perturbation stage is usually by far the larger.
+    """
+    max_pairs = MAX_PAIRS if max_pairs is None else max_pairs
+    n = aln.n_seqs
+    pairs = n * (n - 1) // 2
+    return min(pairs, max_pairs), (max(1, n_replicates) * pairs if do_perturbation else 0)
+
+
+def combine(aln: Alignment, cons, pert=None, stats: Optional[Dict[str, int]] = None
+            ) -> Reliability:
+    """Assemble a report from :func:`consistency`'s and, optionally,
+    :func:`perturbation`'s ``(col, cell)`` results. Without the perturbation
+    scores, ``combined`` is the consistency score alone and
+    ``n_replicates_ok`` is 0."""
+    col_c, cell_c = cons
+    stats = stats or {}
+    if pert is None:
         col_p = np.full(aln.length, np.nan)
         cell_p = np.full((aln.n_seqs, aln.length), np.nan)
-    stack = np.vstack([col_c, col_p])
-    combined = _col_nanmean(stack)
+    else:
+        col_p, cell_p = pert
+    combined = _col_nanmean(np.vstack([col_c, col_p]))
     return Reliability(
         aln.length, col_c, col_p, combined, cell_c, cell_p,
         n_replicates_ok=stats.get("n_ok", 0),
