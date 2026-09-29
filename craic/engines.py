@@ -690,6 +690,12 @@ class CodonAware(AlignerEngine):
     Assumes reading frame 0 and intact frames (no internal frameshifts). The
     result is a codon-aware nucleotide alignment carrying a CodingSpec, so the
     nt/codon/aa views are all immediately valid.
+
+    A sequence whose length is not a multiple of three ends in an incomplete
+    codon. Its last one or two nucleotides are kept, in columns after the last
+    codon: outside the reading frame, so the codon and amino-acid views leave
+    them out, but still in the alignment. They used to be dropped, which lost
+    data and made the result no longer match a reference of the same sequences.
     """
 
     def __init__(self, inner: AlignerEngine, table: int = 1):
@@ -706,7 +712,7 @@ class CodonAware(AlignerEngine):
 
     def align(self, records, alphabet, **opts):
         aa_records: List[Record] = []
-        codon_lists = {}
+        codon_lists, tails = {}, {}
         for name, seq in records:
             s = seq.replace("-", "").upper().replace("U", "T")
             n = len(s) // 3
@@ -714,6 +720,8 @@ class CodonAware(AlignerEngine):
             aa = "".join(translate_codon(c, self.table) for c in codons)
             aa_records.append((name, aa))
             codon_lists[name] = codons
+            tails[name] = s[3 * n:]                  # an incomplete last codon
+        tail_width = max((len(t) for t in tails.values()), default=0)
 
         aa_aln = self.inner.align(aa_records, Alphabet.PROTEIN, **opts)
 
@@ -728,13 +736,25 @@ class CodonAware(AlignerEngine):
                 else:
                     buf.append(codons[ci] if ci < len(codons) else "---")
                     ci += 1
-            nt_rows.append("".join(buf))
+            nt_rows.append("".join(buf) + tails[name].ljust(tail_width, "-"))
         aln = Alignment(list(aa_aln.ids), nt_rows, Alphabet.DNA,
                         coding=CodingSpec(frame=0, table=self.table))
         order = {rec[0]: i for i, rec in enumerate(records)}
         pairs = sorted(zip(aln.ids, aln.rows), key=lambda p: order.get(p[0], 0))
         return Alignment([p[0] for p in pairs], [p[1] for p in pairs], Alphabet.DNA,
                          coding=CodingSpec(frame=0, table=self.table))
+
+
+def changed_sequences(records: Sequence[Record], aln: Alignment) -> List[str]:
+    """Ids whose residues differ between the input ``records`` and the aligned
+    ``aln`` (ignoring gaps, case, and U written as T). An aligner must only
+    insert gaps; anything else means lost or altered data, which should be said
+    rather than shown as an alignment."""
+    def residues(row):
+        return row.replace("-", "").upper().replace("U", "T")
+
+    given = {name: residues(seq) for name, seq in records}
+    return [i for i, row in zip(aln.ids, aln.rows) if i in given and residues(row) != given[i]]
 
 
 # --------------------------------------------------------------------------- #

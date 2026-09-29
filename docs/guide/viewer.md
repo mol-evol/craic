@@ -18,7 +18,8 @@ switch between:
 
 For protein-coding data, align with **align as protein** turned on: CRAIC translates, aligns
 the amino acids, and back-translates, so the frame is never broken and all three levels stay
-valid.
+valid. A sequence that is not a whole number of codons keeps its last one or two nucleotides in
+columns after the last codon; the codon and amino-acid views leave them out.
 
 ## Colouring
 

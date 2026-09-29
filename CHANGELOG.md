@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.14 — "align as protein" keeps every nucleotide
+
+**Aligning as protein dropped an incomplete last codon.** A sequence whose
+length is not a multiple of three lost its last one or two nucleotides when
+aligned with "align as protein". Besides losing data, the result no longer
+matched a reference alignment of the same sequences, so in teaching mode a
+simulated dataset's answer was silently dropped and truth mode then said no
+reference was loaded. Those nucleotides are now kept, in columns after the last
+codon, outside the reading frame.
+
+**An aligner that changes the sequences is reported.** After aligning, CRAIC
+checks that every sequence came back with the same residues, gaps apart, and
+warns if not, saying so when the reference no longer applies. The truth track
+now explains a missing answer the same way the truth colouring does. 283 tests
+pass.
+
 ## 0.5.13 — one core left free
 
 Long analyses now use one thread fewer than the computer has cores, leaving a

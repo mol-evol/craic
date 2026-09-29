@@ -989,3 +989,64 @@ def test_aligner_agreement_reports_each_engine_and_can_be_cancelled():
     with pytest.raises(accel.Cancelled):
         disagreement.compute(d["seqs"], Alphabet.DNA, builtin_variants(), base_alignment=aln,
                              cancelled=lambda: True)
+
+
+# --------------------------------------------------------------------------- #
+# "Align as protein" keeps every nucleotide, so truth mode keeps its answer
+# --------------------------------------------------------------------------- #
+
+def test_align_as_protein_keeps_an_incomplete_last_codon():
+    """Simulated sequences are rarely a whole number of codons. The last one or
+    two nucleotides used to be dropped, silently changing the sequences."""
+    from craic import evaluate
+    from craic.engines import BuiltinProgressive, CodonAware, changed_sequences
+
+    d, truth = _sim(taxa=6, seed=1)
+    assert {len(s) % 3 for _, s in d["seqs"]} >= {1, 2}
+    aln = CodonAware(BuiltinProgressive()).align(d["seqs"], Alphabet.DNA, effort="min")
+    assert changed_sequences(d["seqs"], aln) == []
+    assert aln.length % 3 == 2                      # the tails sit after the last codon…
+    assert aln.frame_break_columns() == []          # …outside the reading frame
+    evaluate.compare_to_reference(aln, truth)       # and the answer still applies
+
+
+def test_changed_sequences_names_what_an_aligner_altered():
+    from craic.engines import changed_sequences
+
+    records = [("a", "ACGTAC"), ("b", "acgu")]
+    same = Alignment(["a", "b"], ["ACG-TAC", "ACGT---"], Alphabet.DNA)
+    lost = Alignment(["a", "b"], ["ACG-TA-", "ACGT---"], Alphabet.DNA)
+    assert changed_sequences(records, same) == []
+    assert changed_sequences(records, lost) == ["a"]
+
+
+def test_truth_mode_survives_aligning_simulated_dna_as_protein():
+    pytest.importorskip("PySide6")
+    from PySide6.QtWidgets import QApplication, QMessageBox
+
+    from craic.engines import BuiltinProgressive, CodonAware
+    from craic.gui.app import CraicWindow, _TRUTH_TRACK
+
+    app = QApplication.instance() or QApplication([])      # noqa: F841
+    win = CraicWindow()
+    d, truth = _sim(taxa=6, seed=1)
+    width = max(len(s) for _, s in d["seqs"])
+    unaligned = Alignment([n for n, _ in d["seqs"]], [s.ljust(width, "-") for _, s in d["seqs"]],
+                          Alphabet.DNA)
+    win._set_alignment(unaligned)
+    win.doc.set_reference(truth, "simulated truth")
+
+    win._align_records = win._source_records()
+    win._align_note = "test"
+    warned = []
+    orig = QMessageBox.warning
+    QMessageBox.warning = staticmethod(lambda *a, **k: warned.append(a))
+    try:
+        win._on_aligned(CodonAware(BuiltinProgressive()).align(
+            win._align_records, Alphabet.DNA, effort="min"))
+    finally:
+        QMessageBox.warning = orig
+    assert win.doc.reference is not None and win.truth is not None
+    assert not [w for w in warned if "changed the sequences" in w[1]]
+    win.track_combo.setCurrentIndex(_TRUTH_TRACK)
+    assert win.canvas._score_label == "Reference correctness"

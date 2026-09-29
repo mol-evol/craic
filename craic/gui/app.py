@@ -25,7 +25,7 @@ from ..ambiguity import report as report_mod
 from ..ambiguity import trimming as trim_mod
 from ..domain import (Alignment, Alphabet, CodingSpec, IdMismatch, Level,
                        code_name, genetic_codes)
-from ..engines import CodonAware, available_engines, builtin_variants
+from ..engines import CodonAware, available_engines, builtin_variants, changed_sequences
 from . import colors
 from .canvas import AlignmentCanvas
 from . import tracks as track_mod
@@ -1479,6 +1479,7 @@ class CraicWindow(QMainWindow):
                              if p.applies_to(handed) and p.key in params})
         self._align_note = engine.label + (f" ({shown})" if shown else "")
         records = self._source_records()
+        self._align_records = records
         alphabet = self.aln.alphabet
         self.align_btn.setEnabled(False)
         self._align_cancelled = False
@@ -1536,7 +1537,9 @@ class CraicWindow(QMainWindow):
         if self._align_cancelled:
             self._align_cancelled = False
             return
+        had_reference = self.doc.reference is not None
         self._commit(aln, f"aligned · {self._align_note}")
+        self._warn_changed_sequences(aln, had_reference)
         # "Align as protein" should land you on the protein view.
         if getattr(self, "_want_aa", False) and Level.AA in aln.available_levels():
             idx = next((i for i in range(self.level_combo.count())
@@ -1544,6 +1547,21 @@ class CraicWindow(QMainWindow):
             if idx >= 0:
                 self.level_combo.setCurrentIndex(idx)   # triggers _on_level → AA view
         self._warn_internal_stops()
+
+    def _warn_changed_sequences(self, aln, had_reference: bool):
+        """An aligner may only insert gaps. If the sequences came back different
+        (a residue lost or altered), say so: otherwise the only sign is truth
+        mode quietly losing its reference, which reads as the program forgetting."""
+        changed = changed_sequences(getattr(self, "_align_records", []), aln)
+        if not changed:
+            return
+        text = (f"{len(changed)} sequence(s) came back from the aligner with different "
+                f"residues from those it was given (first: {changed[0]}). An aligner should "
+                "only insert gaps, so check this alignment before relying on it.")
+        if had_reference and self.doc.reference is None:
+            text += ("\n\nThe reference alignment no longer matches these sequences, so "
+                     "truth mode is off. Undo to return to the original sequences.")
+        QMessageBox.warning(self, "The aligner changed the sequences", text)
 
     def _on_align_error(self, msg):
         self._close_align_progress()
@@ -2297,12 +2315,7 @@ class CraicWindow(QMainWindow):
                 self._run_agreement()
         elif track.kind == "truth":
             if self.truth is None:
-                self._on_track_error(
-                    "No reference alignment is loaded.\n\n"
-                    "Truth mode compares the current alignment with a trusted one — "
-                    "a structural reference, or the known-true alignment of a "
-                    "simulated dataset. Load one from the Teach menu, or generate a "
-                    "dataset whose truth is known.")
+                self._on_track_error(self._no_truth_message())
                 return
             self._show_track(self.truth.col_correct, "Reference correctness")
             self._report_accuracy()            # …and keep the numbers current

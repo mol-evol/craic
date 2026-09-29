@@ -16,7 +16,7 @@ authors:
 repository-code: "https://github.com/mol-evol/craic"
 url: "https://mol-evol.github.io/craic/"
 license: MIT
-version: 0.5.13
+version: 0.5.14
 # While the paper is under review this is the bioRxiv preprint. Add its doi when
 # bioRxiv posts it; when the paper is published, replace this block with the
 # journal article. See docs/editing-docs.md for the other places to update.
