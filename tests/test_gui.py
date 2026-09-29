@@ -1054,7 +1054,9 @@ def _three_seq_window():
 def test_a_long_perturbation_run_is_offered_not_imposed():
     _app()
     win = _three_seq_window()
-    win._ASK_ABOVE_S = 0                        # every run counts as long here
+    # every run counts as long here: -1, not 0, because Windows' clock can time
+    # a tiny consistency stage as 0 s, making the estimate 0 and never over 0
+    win._ASK_ABOVE_S = -1
     asked = []
     win._confirm_perturbation = lambda secs: asked.append(secs) or False
     win.track_combo.setCurrentText("Reliability")
