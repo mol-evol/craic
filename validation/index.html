@@ -1,0 +1,2789 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="CRAIC — Conserved-Region Alignment by Iterative Convergence">
+      
+      
+        <meta name="author" content="James McInerney">
+      
+      
+        <link rel="canonical" href="https://mol-evol.github.io/craic/validation/">
+      
+      
+        <link rel="prev" href="../methods/">
+      
+      
+        <link rel="next" href="../limitations/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Validation - CRAIC</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#validation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="CRAIC" class="md-header__button md-logo" aria-label="CRAIC" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CRAIC
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Validation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mol-evol/craic" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mol-evol/craic
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../background/" class="md-tabs__link">
+          
+  
+  
+  Get started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guide/viewer/" class="md-tabs__link">
+          
+  
+  
+  User guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../concepts/" class="md-tabs__link">
+          
+  
+  
+  Methods & evidence
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../reference/interface/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../faq/" class="md-tabs__link">
+          
+  
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../about/" class="md-tabs__link">
+          
+  
+  
+  About
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="CRAIC" class="md-nav__button md-logo" aria-label="CRAIC" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    CRAIC
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mol-evol/craic" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mol-evol/craic
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Get started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Get started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../background/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Background & intent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/viewer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The alignment viewer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/ambiguity-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ambiguity tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/figures-and-curation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Figures, reports & curation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/teaching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teaching with a known answer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sessions & unsaved work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Methods & evidence
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Methods & evidence
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts & methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Methods in full
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-accuracy-is-measured" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How accuracy is measured
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#real-data-balibase-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real data: BAliBASE 3
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Real data: BAliBASE 3">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#alignment-accuracy-official-core-block-bali_score" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alignment accuracy, official core-block bali_score
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-set-accuracy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-set accuracy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-method-reconstructs-these-alignments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No method reconstructs these alignments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reliability-does-the-score-find-the-wrong-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reliability: does the score find the wrong columns?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#masking-against-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Masking, against controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#simulated-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simulated data
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Simulated data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-alignment-breaks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where alignment breaks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-honest-negative-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The honest negative result
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#masking-residues-instead-of-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Masking residues instead of columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-does-not-show" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this does not show
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reproducing-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproducing this
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../limitations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/command-line/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/engines-and-formats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engines & file formats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard & mouse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Help
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Help
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ & troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    About
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    About
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../about/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    About & citation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture & development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editing-docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editing these docs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-accuracy-is-measured" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How accuracy is measured
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#real-data-balibase-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real data: BAliBASE 3
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Real data: BAliBASE 3">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#alignment-accuracy-official-core-block-bali_score" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alignment accuracy, official core-block bali_score
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-set-accuracy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-set accuracy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-method-reconstructs-these-alignments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No method reconstructs these alignments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reliability-does-the-score-find-the-wrong-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reliability: does the score find the wrong columns?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#masking-against-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Masking, against controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#simulated-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simulated data
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Simulated data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-alignment-breaks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where alignment breaks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-honest-negative-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The honest negative result
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#masking-residues-instead-of-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Masking residues instead of columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-does-not-show" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this does not show
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reproducing-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproducing this
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="validation">Validation</h1>
+<p>CRAIC makes two claims that can be tested rather than asserted:</p>
+<ol>
+<li>that its per-column <strong>reliability score identifies the columns that are
+   actually wrong</strong>, and</li>
+<li>that <strong>masking the flagged columns</strong> leaves an alignment more accurate than
+   removing the same number of columns by a trivial rule.</li>
+</ol>
+<p>Both are measured by the benchmark harness that ships with the software
+(<code>benchmarks/</code>), against two independent sources of ground truth. This page
+reports what it found. The numbers are regenerated by the commands given at the
+bottom, so they can be checked.</p>
+<h2 id="how-accuracy-is-measured">How accuracy is measured</h2>
+<p><strong>SP</strong> (sum-of-pairs) is the fraction of the reference's homologous residue pairs
+the alignment recovers — recall. <strong>TC</strong> (total column) is the fraction of the
+reference's columns reproduced exactly, which is much harsher: one misplaced
+residue loses the column. <strong>Reliability AUC</strong> is the ROC area under the curve of
+the reliability score predicting which columns are actually correct; 0.5 is
+chance, and this is the number that decides whether the reliability claim is
+worth anything.</p>
+<p>A scope caveat that matters for comparing against published tables: BAliBASE SP
+and TC figures in the literature are computed over the reference's <strong>core
+blocks</strong> only — the regions the structural alignment is confident about — using
+the official <code>bali_score</code>. An all-column figure is a different and generally
+lower quantity. Both are reported below and each is labelled.</p>
+<h2 id="real-data-balibase-3">Real data: BAliBASE 3</h2>
+<p>Every family was re-aligned with CRAIC's built-in engine and with MAFFT 7.505,
+MUSCLE 5.1, Clustal Omega 1.2.4, ProbCons 1.12, PRANK v.170427 and ClustalW 2.1,
+then scored
+two ways: with the official <code>bali_score</code> over core blocks, and with CRAIC's own
+all-column metrics (which is what the reliability AUC and the masking controls
+need, since they are per-column quantities).</p>
+<p>Only families that every aligner completed are included, so the means compare
+like with like. <strong>163 families</strong> qualify, covering <strong>RV11 (76 of 76)</strong> and
+<strong>RV12 (87 of 88</strong> — one family's dense pairwise posteriors exceed the memory
+budget, and it is skipped for every engine alike<strong>)</strong>.</p>
+<p>RV20, RV30, RV40 and RV50 are <strong>not</strong> reported. The consistency transformation
+does not scale to families of 30–450 sequences (see
+<a href="../limitations/">Limitations</a>), so those sets can only ever be partially covered,
+and a partial set is worse than an absent one: which families drop out is decided
+by CRAIC's memory ceiling rather than by anything about the aligners, so the
+survivors are a biased sample. RV11 and RV12 are reported because they are
+complete.</p>
+<p>Figures below are means ± standard error.</p>
+<div class="admonition note">
+<p class="admonition-title">The built-in engine was re-run in 0.5.11</p>
+<p>With SciPy installed, CRAIC 0.5.10 and earlier approximated the consistency
+transformation (posteriors below 0.01 dropped) for any family with a sequence
+of 350 residues or more. The benchmark machine has SciPy, so the built-in
+engine's rows were made with the approximation. 0.5.11 uses the exact
+transformation whenever it fits in memory, and the built-in rows here are
+re-run with it: on BAliBASE SP 0.827 → 0.830 (161 of the 163 families exact;
+the two largest still need the approximation within the 3 GB budget), on the
+simulations 0.539 → 0.604. No other aligner's numbers are affected.</p>
+</div>
+<h3 id="alignment-accuracy-official-core-block-bali_score">Alignment accuracy, official core-block <code>bali_score</code></h3>
+<p>These are the numbers comparable with published BAliBASE tables.</p>
+<table>
+<thead>
+<tr>
+<th>aligner</th>
+<th>SP</th>
+<th>TC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MUSCLE 5.1</td>
+<td>0.856 ± 0.012</td>
+<td>0.712 ± 0.020</td>
+</tr>
+<tr>
+<td>ProbCons 1.12</td>
+<td>0.850 ± 0.013</td>
+<td>0.705 ± 0.021</td>
+</tr>
+<tr>
+<td>CRAIC built-in</td>
+<td>0.830 ± 0.014</td>
+<td>0.676 ± 0.022</td>
+</tr>
+<tr>
+<td>MAFFT 7.505</td>
+<td>0.818 ± 0.016</td>
+<td>0.667 ± 0.022</td>
+</tr>
+<tr>
+<td>Clustal Omega 1.2.4</td>
+<td>0.766 ± 0.018</td>
+<td>0.593 ± 0.024</td>
+</tr>
+<tr>
+<td>ClustalW 2.1</td>
+<td>0.743 ± 0.017</td>
+<td>0.551 ± 0.025</td>
+</tr>
+<tr>
+<td>PRANK v.170427</td>
+<td>0.714 ± 0.018</td>
+<td>0.506 ± 0.023</td>
+</tr>
+</tbody>
+</table>
+<p>Paired Wilcoxon tests against the built-in engine, on SP:</p>
+<table>
+<thead>
+<tr>
+<th>aligner</th>
+<th>difference</th>
+<th>better / worse</th>
+<th>p</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MUSCLE</td>
+<td>+0.025</td>
+<td>106 / 42</td>
+<td>9.7 × 10⁻⁹</td>
+</tr>
+<tr>
+<td>ProbCons</td>
+<td>+0.020</td>
+<td>97 / 52</td>
+<td>2.5 × 10⁻⁵</td>
+</tr>
+<tr>
+<td>MAFFT</td>
+<td>−0.013</td>
+<td>60 / 94</td>
+<td>0.045</td>
+</tr>
+<tr>
+<td>Clustal Omega</td>
+<td>−0.064</td>
+<td>31 / 131</td>
+<td>1.2 × 10⁻¹³</td>
+</tr>
+<tr>
+<td>ClustalW</td>
+<td>−0.088</td>
+<td>21 / 139</td>
+<td>6.5 × 10⁻²¹</td>
+</tr>
+<tr>
+<td>PRANK</td>
+<td>−0.117</td>
+<td>5 / 157</td>
+<td>1.1 × 10⁻²⁷</td>
+</tr>
+</tbody>
+</table>
+<p>Four things in that table are worth drawing out.</p>
+<p><strong>ProbCons is there on purpose.</strong> CRAIC's built-in engine follows ProbCons's
+method, so a table reporting it against MAFFT and MUSCLE alone would invite the
+reader to conclude that posterior-consistency alignment is the weaker approach.
+ProbCons itself scores 0.020 above the built-in engine, so most of that
+difference is this implementation rather than the method — the built-in engine
+estimates its pair-HMM parameters per dataset where ProbCons EM-trains them once,
+and that is the substantive remaining difference between them.</p>
+<p><strong>The built-in engine is slightly ahead of MAFFT here</strong> (by 0.013, p = 0.045). It is
+behind MUSCLE and ProbCons, ahead of Clustal Omega, and the ordering is not
+uniform across the sets: it is fourth on BB11 and BB12 and third on BBS1, where
+it beats MAFFT by 0.043. Per-set figures are in the
+<a href="#per-set-accuracy">supplementary tables</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">PRANK was re-run in 0.5.10</p>
+<p>CRAIC 0.5.9 passed PRANK <code>-gaprate=0.025 -gapext=0.5</code> for every dataset.
+PRANK's own defaults for protein are 0.005 / 0.5, so the first version of
+this benchmark aligned every family with five times PRANK's gap-opening
+rate. The PRANK rows here are re-run with PRANK's own defaults (SP 0.686 →
+0.714, TC 0.470 → 0.506); every other aligner's rows are unchanged, and so
+are the conclusions drawn from them.</p>
+</div>
+<p><strong>ClustalW is there for teaching.</strong> It is the one engine whose gap costs are the
+textbook pair of opening and extension penalties, so it is where a student can
+change them and watch the result against the truth. It was added in 0.5.10 and
+run with the same command (<code>--engines clustalw</code>). As expected of Clustal Omega's
+predecessor, it is behind it (53 families better, 107 worse, p = 1.4 × 10⁻⁴).</p>
+<p><strong>PRANK's position is a property of the benchmark, not a verdict on PRANK.</strong> It
+is phylogeny-aware and declines to over-align — it treats insertions as
+insertions rather than forcing them into shared columns — while reference
+benchmarks reward maximal alignment. Scoring it this way largely measures that
+design choice; it is included because CRAIC wraps it and omitting an engine the
+workbench offers would be a selection the reader could not see.</p>
+<h3 id="per-set-accuracy">Per-set accuracy</h3>
+<table>
+<thead>
+<tr>
+<th>aligner</th>
+<th>BB11 SP</th>
+<th>BB12 SP</th>
+<th>BBS1 SP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td>n=38</td>
+<td>n=43</td>
+<td>n=82</td>
+</tr>
+<tr>
+<td>MUSCLE</td>
+<td>0.685</td>
+<td>0.942</td>
+<td>0.889</td>
+</tr>
+<tr>
+<td>ProbCons</td>
+<td>0.670</td>
+<td>0.941</td>
+<td>0.886</td>
+</tr>
+<tr>
+<td>CRAIC built-in</td>
+<td>0.625</td>
+<td>0.926</td>
+<td>0.875</td>
+</tr>
+<tr>
+<td>MAFFT</td>
+<td>0.651</td>
+<td>0.938</td>
+<td>0.832</td>
+</tr>
+<tr>
+<td>Clustal Omega</td>
+<td>0.590</td>
+<td>0.905</td>
+<td>0.775</td>
+</tr>
+<tr>
+<td>ClustalW</td>
+<td>0.501</td>
+<td>0.864</td>
+<td>0.792</td>
+</tr>
+<tr>
+<td>PRANK</td>
+<td>0.490</td>
+<td>0.851</td>
+<td>0.745</td>
+</tr>
+</tbody>
+</table>
+<h3 id="no-method-reconstructs-these-alignments">No method reconstructs these alignments</h3>
+<p>The premise the workbench is built on is measurable, and it is not a matter of
+degree. Over the same 163 families:</p>
+<table>
+<thead>
+<tr>
+<th>aligner</th>
+<th>families reconstructed exactly (TC = 1.000)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MUSCLE</td>
+<td>6 / 163 (3.7%)</td>
+</tr>
+<tr>
+<td>ProbCons</td>
+<td>6 / 163 (3.7%)</td>
+</tr>
+<tr>
+<td>CRAIC built-in</td>
+<td>6 / 163 (3.7%)</td>
+</tr>
+<tr>
+<td>MAFFT</td>
+<td>5 / 163 (3.1%)</td>
+</tr>
+<tr>
+<td>Clustal Omega</td>
+<td>0 / 163 (0.0%)</td>
+</tr>
+<tr>
+<td>PRANK</td>
+<td>0 / 163 (0.0%)</td>
+</tr>
+<tr>
+<td>ClustalW</td>
+<td>6 / 163 (3.7%)</td>
+</tr>
+<tr>
+<td><strong>any method</strong></td>
+<td><strong>11 / 163 (6.7%)</strong></td>
+</tr>
+<tr>
+<td><strong>all seven methods</strong></td>
+<td><strong>0 / 163 (0.0%)</strong></td>
+</tr>
+</tbody>
+</table>
+<p>93% of families are reconstructed incorrectly by every aligner tested, and there
+is not one family that all seven get right. Nor is the best method knowable in
+advance: MUSCLE produces the best alignment for 81 of the 163 families, leaving
+82 won by one of the other six. An oracle allowed to pick the best method per
+family would reach TC 0.742 against MUSCLE's 0.712 — an improvement unavailable
+in practice, and one that still leaves a quarter of columns misplaced.</p>
+<p>These are capable tools; each recovers the large majority of homologous pairs.
+The point is that no automatic procedure available today returns an alignment
+that can be treated as settled, and that the errors differ from method to method
+— so deciding which parts to rely on remains a judgement a person has to make.
+That is the case for putting the uncertainty in front of them.</p>
+<h3 id="reliability-does-the-score-find-the-wrong-columns">Reliability: does the score find the wrong columns?</h3>
+<p>This is the claim that matters. The score used here is the <strong>consistency</strong>
+component alone (the benchmark was run without the perturbation ensemble, which
+is an order of magnitude more expensive); the combined score adds perturbation on
+top of it.</p>
+<p>These are CRAIC's own all-column metrics, not the core-block figures above, since
+the AUC is a per-column quantity and needs every column.</p>
+<table>
+<thead>
+<tr>
+<th>alignment built by</th>
+<th>SP</th>
+<th>TC</th>
+<th>reliability AUC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MUSCLE</td>
+<td>0.740</td>
+<td>0.466</td>
+<td>0.833 ± 0.010</td>
+</tr>
+<tr>
+<td>ProbCons</td>
+<td>0.732</td>
+<td>0.460</td>
+<td>0.845 ± 0.009</td>
+</tr>
+<tr>
+<td>CRAIC built-in</td>
+<td>0.714</td>
+<td>0.445</td>
+<td>0.848 ± 0.007</td>
+</tr>
+<tr>
+<td>MAFFT</td>
+<td>0.700</td>
+<td>0.431</td>
+<td>0.874 ± 0.007</td>
+</tr>
+<tr>
+<td>Clustal Omega</td>
+<td>0.665</td>
+<td>0.399</td>
+<td>0.876 ± 0.009</td>
+</tr>
+<tr>
+<td>ClustalW</td>
+<td>0.643</td>
+<td>0.379</td>
+<td>0.903 ± 0.009</td>
+</tr>
+<tr>
+<td>PRANK</td>
+<td>0.596</td>
+<td>0.332</td>
+<td>0.905 ± 0.007</td>
+</tr>
+</tbody>
+</table>
+<p>An AUC of 0.83–0.90 means that, picking a correct column and an incorrect one at
+random, the score ranks them the right way round between five and nine times in
+ten. It works on alignments CRAIC did not build as well as on its own, which is
+the property that matters for a curation tool.</p>
+<p><strong>This column is not a ranking of the aligners — it is very close to the reverse
+of one.</strong> Across the seven engines, reliability AUC and alignment accuracy are
+perfectly anticorrelated in rank (Spearman ρ = −1.00, p = 0.0004): the AUC is
+highest on PRANK's alignments, which are the least accurate, and lowest on
+MUSCLE's, which are the most. That is expected rather than perverse. A less
+accurate alignment contains more genuinely wrong columns, so there is more signal
+for any classifier to separate; a nearly-correct alignment offers few errors to
+find and every mistake costs proportionally more. The column says how well the
+score identifies wrong columns <em>given</em> an alignment. It says nothing whatever
+about which alignment to prefer, and reading it as if it did would invert the
+answer.</p>
+<h3 id="masking-against-controls">Masking, against controls</h3>
+<p>Masking raises mean accuracy for <strong>any</strong> column score correlated with difficulty,
+so the all-column/kept-column contrast is not evidence of anything. Both controls
+therefore retain the <strong>same number</strong> of columns: a matched random mask, and the
+trivial <strong>gap-fraction</strong> rule. Only the margin over those is evidence.</p>
+<table>
+<thead>
+<tr>
+<th>alignment built by</th>
+<th>kept columns</th>
+<th>matched random</th>
+<th>gap-fraction rule</th>
+<th>z</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ClustalW</td>
+<td><strong>0.858</strong></td>
+<td>0.606</td>
+<td>0.669</td>
+<td>+11.3</td>
+</tr>
+<tr>
+<td>PRANK</td>
+<td><strong>0.846</strong></td>
+<td>0.592</td>
+<td>0.671</td>
+<td>+10.8</td>
+</tr>
+<tr>
+<td>Clustal Omega</td>
+<td><strong>0.842</strong></td>
+<td>0.615</td>
+<td>0.710</td>
+<td>+9.8</td>
+</tr>
+<tr>
+<td>MUSCLE</td>
+<td><strong>0.837</strong></td>
+<td>0.671</td>
+<td>0.733</td>
+<td>+8.1</td>
+</tr>
+<tr>
+<td>ProbCons</td>
+<td><strong>0.832</strong></td>
+<td>0.666</td>
+<td>0.733</td>
+<td>+8.1</td>
+</tr>
+<tr>
+<td>MAFFT</td>
+<td><strong>0.828</strong></td>
+<td>0.634</td>
+<td>0.728</td>
+<td>+9.5</td>
+</tr>
+<tr>
+<td>CRAIC built-in</td>
+<td><strong>0.819</strong></td>
+<td>0.648</td>
+<td>0.714</td>
+<td>+8.0</td>
+</tr>
+</tbody>
+</table>
+<p>A random mask is an unbiased subsample, so it recovers the all-column mean rather
+than improving on it; its job here is to fix the baseline and supply the spread
+the <em>z</em> is measured in. The <strong>gap-fraction rule is the real competitor</strong>: it costs
+nothing to compute and already reaches 0.71–0.73, which is over half the distance
+from random to the reliability score. The reliability score reaches 0.82–0.86.</p>
+<p>The informative margin is therefore the last <strong>≈ 0.10</strong> (0.10–0.19 across the seven
+engines), not the ≈ 0.19 over random and not what an uncontrolled before-and-after
+comparison would suggest. Gap fraction is one line of code, so the pair-HMM, the consistency
+transformation and the perturbation ensemble have to beat <em>it</em> to earn the
+compute they cost. They do, consistently and across every engine — but by about a
+third of what the naive comparison would let you claim.</p>
+<p>One caveat on the <em>z</em> column: it is computed against the random-mask null only,
+so it tests the ≈ 0.19 margin rather than the ≈ 0.10 one that matters.</p>
+<h2 id="simulated-data">Simulated data</h2>
+<p>Simulation gives per-residue ground truth, so it can measure things a structural
+reference cannot — in particular how accuracy and reliability behave as a
+function of divergence, and whether masking helps the downstream tree.</p>
+<p>Sequences are evolved down random binary trees with substitutions, insertions
+and deletions and among-site rate variation (gamma, α = 0.8): <strong>360 datasets</strong>
+over 8 and 16 taxa, root length 400 nt, six divergence levels (0.1 to 1.5) and
+three indel rates, 10 replicates per condition.</p>
+<table>
+<thead>
+<tr>
+<th>aligner</th>
+<th>SP</th>
+<th>TC</th>
+<th>reliability AUC</th>
+<th>kept</th>
+<th>random</th>
+<th>gap rule</th>
+<th>z</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CRAIC built-in</td>
+<td>0.604</td>
+<td>0.369</td>
+<td><strong>0.855</strong></td>
+<td>0.926</td>
+<td>0.529</td>
+<td>0.690</td>
+<td>+6.9</td>
+</tr>
+<tr>
+<td>MAFFT</td>
+<td>0.608</td>
+<td>0.379</td>
+<td><strong>0.893</strong></td>
+<td>0.843</td>
+<td>0.533</td>
+<td>0.548</td>
+<td>+11.3</td>
+</tr>
+<tr>
+<td>MUSCLE</td>
+<td>0.663</td>
+<td>0.387</td>
+<td><strong>0.858</strong></td>
+<td>0.884</td>
+<td>0.581</td>
+<td>0.669</td>
+<td>+8.5</td>
+</tr>
+<tr>
+<td>Clustal Omega</td>
+<td>0.549</td>
+<td>0.261</td>
+<td><strong>0.943</strong></td>
+<td>0.836</td>
+<td>0.529</td>
+<td>0.532</td>
+<td>+12.2</td>
+</tr>
+<tr>
+<td>ClustalW</td>
+<td>0.555</td>
+<td>0.332</td>
+<td><strong>0.927</strong></td>
+<td>0.873</td>
+<td>0.534</td>
+<td>0.534</td>
+<td>+12.6</td>
+</tr>
+</tbody>
+</table>
+<p>The reliability AUC is higher here than on BAliBASE (0.86–0.94 against
+0.83–0.90), which is what you would expect and is worth saying out loud: the
+simulated sequences are generated under a model closer to the pair-HMM that
+computes the score than real protein families are. The BAliBASE figures are the
+honest ones; these are the upper bound.</p>
+<h3 id="where-alignment-breaks">Where alignment breaks</h3>
+<p>Averages hide the interesting part. Accuracy does not decay gracefully with
+divergence — it falls off a cliff between 0.25 and 0.5, and every method falls off
+it together:</p>
+<table>
+<thead>
+<tr>
+<th>divergence</th>
+<th>CRAIC</th>
+<th>MAFFT</th>
+<th>MUSCLE</th>
+<th>Clustal Omega</th>
+<th>ClustalW</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.1</td>
+<td>0.982</td>
+<td>0.965</td>
+<td>0.964</td>
+<td>0.860</td>
+<td>0.955</td>
+</tr>
+<tr>
+<td>0.25</td>
+<td>0.914</td>
+<td>0.887</td>
+<td>0.892</td>
+<td>0.746</td>
+<td>0.825</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>0.697</td>
+<td>0.680</td>
+<td>0.730</td>
+<td>0.594</td>
+<td>0.601</td>
+</tr>
+<tr>
+<td>0.75</td>
+<td>0.484</td>
+<td>0.509</td>
+<td>0.590</td>
+<td>0.473</td>
+<td>0.435</td>
+</tr>
+<tr>
+<td>1.0</td>
+<td>0.354</td>
+<td>0.396</td>
+<td>0.490</td>
+<td>0.382</td>
+<td>0.333</td>
+</tr>
+<tr>
+<td>1.5</td>
+<td>0.191</td>
+<td>0.214</td>
+<td>0.314</td>
+<td>0.241</td>
+<td>0.180</td>
+</tr>
+</tbody>
+</table>
+<p>Two things follow. The built-in engine is level with MAFFT up to a divergence of
+0.5 and a little behind it beyond, and behind MUSCLE from 0.5 on, so MUSCLE is
+still the one to use on hard data. And past a divergence of about 0.5 every
+aligner is recovering less than three-quarters of the true homologies, which is
+precisely the regime where an interactive view of <em>which</em> columns are wrong stops
+being a nicety.</p>
+<p>The reliability score, by contrast, keeps working across the whole range
+(AUC 0.83–0.89 on CRAIC's own alignments) — it does not degrade where the
+alignment does.</p>
+<h3 id="the-honest-negative-result">The honest negative result</h3>
+<p>Masking improves per-column accuracy substantially and consistently. It does
+<strong>not</strong> improve neighbour-joining tree recovery. It makes it worse, at every
+divergence above the trivial, and increasingly so — Robinson–Foulds distance to
+the true topology, CRAIC alignments, default 0.5 threshold:</p>
+<table>
+<thead>
+<tr>
+<th>divergence</th>
+<th>RF, full alignment</th>
+<th>RF, masked</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.1</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>0.25</td>
+<td>0.04</td>
+<td>0.14</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>0.16</td>
+<td>0.42</td>
+</tr>
+<tr>
+<td>0.75</td>
+<td>0.29</td>
+<td>0.60</td>
+</tr>
+<tr>
+<td>1.0</td>
+<td>0.42</td>
+<td>0.68</td>
+</tr>
+<tr>
+<td>1.5</td>
+<td>0.60</td>
+<td>0.81</td>
+</tr>
+</tbody>
+</table>
+<p>The reason is not mysterious: at high divergence the threshold discards most of
+the columns, and with them the phylogenetic signal. A more accurate alignment of
+a quarter of the data is a worse basis for a tree than a sloppier alignment of
+all of it. This is consistent with Tan <em>et al.</em> (2015), who found that automated
+alignment filtering frequently worsens single-gene phylogenetic inference.</p>
+<p>We report it prominently because it bears directly on how the tool should be
+used. The reliability signal is for <strong>locating and interrogating</strong> ambiguous
+regions — and, if you must act on it, for curating them by hand. It is not an
+automatic filter to put in front of a tree search, and CRAIC's masking slider
+should not be treated as one.</p>
+<h3 id="masking-residues-instead-of-columns">Masking residues instead of columns</h3>
+<p>Masking a column throws away its correctly aligned residues along with the
+wrong ones, and residue-level filters such as Divvier (Ali <em>et al.</em> 2019) and
+CLOAK (Wheeler <em>et al.</em> 2026) are reported to lose less signal. CRAIC 0.5.10
+can mask individual residues, so the same simulations were used to ask whether
+masking the residues the reliability score flags does better than masking the
+columns. For each CRAIC alignment the tree was built from the full alignment;
+with columns below 0.5 removed; with the lowest-scoring residues masked as
+missing data — exactly as many as the column mask removed, so both masks remove
+the same amount; with that many residues masked at random; and with every
+residue below 0.5 masked. Neighbour-joining skips masked residues pairwise, like
+gaps; IQ-TREE 2 (JC+G4, the simulating model), run at divergences 0.25 and 0.5,
+handles them site by site. Datasets in which any mask left too little data for a
+tree are excluded from every comparison (<em>n</em> below, of 60 per divergence).</p>
+<table>
+<thead>
+<tr>
+<th>divergence</th>
+<th>tree</th>
+<th>removed</th>
+<th>full</th>
+<th>columns</th>
+<th>residues, lowest</th>
+<th>residues, random</th>
+<th>residues &lt; 0.5</th>
+<th><em>n</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.1</td>
+<td>NJ</td>
+<td>2%</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.01</td>
+<td>0.01</td>
+<td>0.01</td>
+<td>60</td>
+</tr>
+<tr>
+<td>0.25</td>
+<td>NJ</td>
+<td>24%</td>
+<td>0.04</td>
+<td>0.14</td>
+<td>0.22</td>
+<td>0.20</td>
+<td>0.19</td>
+<td>60</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>NJ</td>
+<td>68%</td>
+<td>0.15</td>
+<td>0.42</td>
+<td>0.54</td>
+<td>0.55</td>
+<td>0.49</td>
+<td>50</td>
+</tr>
+<tr>
+<td>0.75</td>
+<td>NJ</td>
+<td>89%</td>
+<td>0.21</td>
+<td>0.60</td>
+<td>0.74</td>
+<td>0.77</td>
+<td>0.67</td>
+<td>39</td>
+</tr>
+<tr>
+<td>1.0</td>
+<td>NJ</td>
+<td>96%</td>
+<td>0.32</td>
+<td>0.68</td>
+<td>0.85</td>
+<td>0.83</td>
+<td>0.72</td>
+<td>21</td>
+</tr>
+<tr>
+<td>1.5</td>
+<td>NJ</td>
+<td>99%</td>
+<td>0.35</td>
+<td>0.81</td>
+<td>0.91</td>
+<td>0.95</td>
+<td>0.83</td>
+<td>10</td>
+</tr>
+<tr>
+<td>0.25</td>
+<td>ML</td>
+<td>25%</td>
+<td>0.02</td>
+<td>0.12</td>
+<td>0.19</td>
+<td>0.18</td>
+<td>0.18</td>
+<td>60</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>ML</td>
+<td>70%</td>
+<td>0.12</td>
+<td>0.47</td>
+<td>0.57</td>
+<td>0.61</td>
+<td>0.53</td>
+<td>52</td>
+</tr>
+</tbody>
+</table>
+<p>Masking residues did not help. At the same amount removed, masking the
+lowest-scoring residues gave worse trees than masking columns (mean
+Robinson–Foulds difference +0.09 with neighbour-joining, better in 10 datasets
+and worse in 75, Wilcoxon <em>p</em> = 7 × 10⁻¹²; +0.09 with maximum likelihood, 6
+better and 40 worse, <em>p</em> = 5 × 10⁻⁷), and no better than masking the same number of
+residues at random (−0.002, <em>p</em> = 0.54, and −0.01, <em>p</em> = 0.19).
+Masking every residue below 0.5 was also worse than masking columns. The flagged
+residues are not spread evenly across sequences, so the sequences that are
+hardest to align are left with the least data. At this threshold the residues the
+score flags carry phylogenetic signal as well as error. Gentler filtering,
+removing far fewer residues, has been reported to improve gene trees (Wheeler <em>et
+al.</em> 2026) and was not tested here.</p>
+<p>The neighbour-joining rows come from the same 0.5.11 run as the tables above.
+The maximum-likelihood rows are from 0.5.10, whose built-in engine used the
+approximate consistency transformation, and have not been re-run.</p>
+<p>So residue masks are a curation tool — for a residue you have looked at and
+judged wrong — not a better automatic filter.</p>
+<h2 id="what-this-does-not-show">What this does not show</h2>
+<ul>
+<li>Nothing here validates the <em>perturbation</em> component separately against
+  GUIDANCE, because CRAIC's perturbation score is deliberately not equivalent to
+  it (16 replicates of CRAIC's own engine, not ~100 of the aligner under test).
+  See <a href="../limitations/">Limitations</a>.</li>
+<li>Large families are excluded. The consistency-based analysis is O(N³) in
+  sequences and O(N²L²) in memory; the benchmark skips any family whose pairwise
+  posteriors would exceed a stated budget, and skipped families are excluded from
+  <strong>every</strong> aligner's mean so the comparison stays fair. The number skipped is
+  reported by the harness.</li>
+<li>The built-in aligner is not being advanced as competitive. It is included
+  because a reader is entitled to know how the always-available engine performs,
+  and the answer is: adequately, and behind MAFFT and MUSCLE.</li>
+</ul>
+<h2 id="reproducing-this">Reproducing this</h2>
+<p>You need the aligners on your <code>PATH</code> and BAliBASE 3 unpacked. The compiled Rust
+core makes the whole thing roughly ten times faster but changes no results.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 1. simulation arm — 360 datasets</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1">#    The reliability figures are the consistency score alone and the built-in</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1">#    engine runs at --effort med, as the published numbers were made; adding</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1">#    --perturbation, or leaving the effort at its default (max), gives different</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1">#    numbers.</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>python<span class="w"> </span>benchmarks/run_benchmark.py<span class="w"> </span>--sim<span class="w"> </span>--taxa<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="m">16</span><span class="w"> </span>--length<span class="w"> </span><span class="m">400</span><span class="w"> </span>--reps<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span>--divergence<span class="w"> </span><span class="m">0</span>.1<span class="w"> </span><span class="m">0</span>.25<span class="w"> </span><span class="m">0</span>.5<span class="w"> </span><span class="m">0</span>.75<span class="w"> </span><span class="m">1</span>.0<span class="w"> </span><span class="m">1</span>.5<span class="w"> </span>--indel<span class="w"> </span><span class="m">0</span>.5<span class="w"> </span><span class="m">2</span>.0<span class="w"> </span><span class="m">5</span>.0<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span>--rate-alpha<span class="w"> </span><span class="m">0</span>.8<span class="w"> </span>--effort<span class="w"> </span>med<span class="w"> </span>--out<span class="w"> </span>sim.csv
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># 2. real-data arm — BAliBASE 3, the two reference sets reported above.</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1">#    --effort max runs the built-in engine with iterative refinement; leaving it</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1">#    at the default would measure the engine with a stage switched off.</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1">#    --engine-timeout 0 disables the per-aligner cap: PRANK needs several minutes</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="c1">#    on the larger families and a cap records our impatience as its failure.</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>python<span class="w"> </span>benchmarks/run_benchmark.py<span class="w"> </span>--protein<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span>--reference<span class="w"> </span><span class="s2">"bb3_release/RV1*/*.xml"</span><span class="w"> </span>--effort<span class="w"> </span>max<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span>--write-alignments<span class="w"> </span>aligned_out<span class="w"> </span>--max-mem-gb<span class="w"> </span><span class="m">3</span><span class="w"> </span>--engine-timeout<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span>--out<span class="w"> </span>balibase.csv
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="c1">#    The ClustalW rows were added with --engines clustalw on this command and on</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="c1">#    the simulation command.</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="c1"># 3. official core-block scores for the alignments written in step 2</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>python<span class="w"> </span>benchmarks/score_balibase.py<span class="w"> </span>aligned_out<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span>--reference-dir<span class="w"> </span>bb3_release<span class="w"> </span>--bali-score<span class="w"> </span>./bali_score<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span>-o<span class="w"> </span>balibase_official.csv
+</code></pre></div>
+<p>Building the official scorer is described in the header of
+<code>benchmarks/score_balibase.py</code>: BAliBASE ships its source, but the bundled
+<code>libexpat.a</code> is a 2008 Alpha binary that will not link on any current machine, so
+it has to be built against the system expat. Verify it by scoring a reference
+against itself, which must give exactly 1.000 / 1.000.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      CRAIC is written by <a href="https://mol-evol.github.io/">James McInerney</a> · MIT licence · <a href="https://mol-evol.github.io/craic/about/#how-to-cite-craic">How to cite CRAIC</a>
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://mol-evol.github.io/" target="_blank" rel="noopener" title="James McInerney&#39;s website" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M277.8 8.6c-12.3-11.4-31.3-11.4-43.5 0l-224 208c-9.6 9-12.8 22.9-8 35.1S18.8 272 32 272h16v176c0 35.3 28.7 64 64 64h288c35.3 0 64-28.7 64-64V272h16c13.2 0 25-8.1 29.8-20.3s1.6-26.2-8-35.1zM240 320h32c26.5 0 48 21.5 48 48v96H192v-96c0-26.5 21.5-48 48-48"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://github.com/mol-evol/craic" target="_blank" rel="noopener" title="CRAIC on GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.instant", "toc.follow", "content.code.copy", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
