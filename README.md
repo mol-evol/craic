@@ -14,6 +14,10 @@ downstream phylogenetics so often goes quietly wrong.
 
 **Install:** `pip install craic-msa` then run `craic`.  ·  **Website:** <https://mol-evol.github.io/craic/>
 
+[![CRAIC walkthrough video](https://img.youtube.com/vi/ZljsTlLer-A/hqdefault.jpg)](https://youtu.be/ZljsTlLer-A)
+
+▶️ *Click the image above to watch a walkthrough of CRAIC on YouTube.*
+
 Written by [James McInerney](https://mol-evol.github.io/), University of Liverpool.
 If you use CRAIC, please [cite it](#citation).
 
